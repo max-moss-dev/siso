@@ -4,6 +4,11 @@ Structured input, structured output
 
 UI interface web app aiming to provide a fast and intuitive way to provide LLM different blocks and types of inputs, define the output blocks and types of outputs. Mainly for project scaffolding, potentially some other use cases.
 
+## Documentation
+
+- [Project Timeline](timeline.md)
+- [Use Cases](use-cases.md)
+
 ## Draft
 
 The UI of the app is based on one of the existing frameworks/libraries for prototyping LLM interfaces (Openweb UI, others...). The main focus is on creating an intuitive, easy-to-use interface, which at the same time gives the ability to split the input and output into different blocks, for different purposes and types of views. The chat history interface can be skipped or transformed into more of a project list.
