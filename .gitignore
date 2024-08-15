@@ -1,0 +1,5 @@
+.streamlit/
+app_data.db
+.vscode/
+.DS_Store
+.idea/
