@@ -4,3 +4,7 @@ app_data.db
 .DS_Store
 .idea/
 .env
+__pycache__/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock

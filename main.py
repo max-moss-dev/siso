@@ -5,6 +5,12 @@ from typing import List, Dict, Optional
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
+import json
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -13,20 +19,32 @@ app = FastAPI()
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Allow the React app's origin
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Initialize the OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# Load context blocks from file or initialize with default values
+def load_context_blocks():
+    if os.path.exists("context_blocks.json"):
+        with open("context_blocks.json", "r") as f:
+            return json.load(f)
+    return {
+        "Block 1": {"content": "This is the first context block.", "prompt": "Use this information:"},
+        "Block 2": {"content": "This is the second context block.", "prompt": "Consider this:"}
+    }
+
+# Save context blocks to file
+def save_context_blocks(blocks):
+    with open("context_blocks.json", "w") as f:
+        json.dump(blocks, f)
+
 # Initialize context blocks
-context_blocks = {
-    "Block 1": {"content": "This is the first context block.", "prompt": "Use this information:"},
-    "Block 2": {"content": "This is the second context block.", "prompt": "Consider this:"}
-}
+context_blocks = load_context_blocks()
 
 class Message(BaseModel):
     role: str
@@ -76,6 +94,7 @@ async def add_context_block(block: ContextBlock):
     if block.name in context_blocks:
         raise HTTPException(status_code=400, detail="Block with this name already exists")
     context_blocks[block.name] = {"content": block.content, "prompt": block.prompt}
+    save_context_blocks(context_blocks)
     return {"message": "Block added successfully"}
 
 @app.put("/context_blocks/{name}")
@@ -83,7 +102,21 @@ async def update_context_block(name: str, block: ContextBlock):
     if name not in context_blocks:
         raise HTTPException(status_code=404, detail="Block not found")
     context_blocks[name] = {"content": block.content, "prompt": block.prompt}
+    save_context_blocks(context_blocks)
     return {"message": "Block updated successfully"}
+
+@app.delete("/context_blocks/{block_name}")
+async def delete_context_block(block_name: str):
+    logger.info(f"Attempting to delete block: {block_name}")
+    logger.info(f"Current context blocks: {list(context_blocks.keys())}")
+    if block_name not in context_blocks:
+        logger.warning(f"Block {block_name} not found")
+        raise HTTPException(status_code=404, detail="Context block not found")
+    del context_blocks[block_name]
+    save_context_blocks(context_blocks)
+    logger.info(f"Block {block_name} deleted successfully")
+    logger.info(f"Updated context blocks: {list(context_blocks.keys())}")
+    return {"message": f"Context block '{block_name}' deleted successfully"}
 
 if __name__ == "__main__":
     import uvicorn

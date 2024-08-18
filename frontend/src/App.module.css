@@ -7,10 +7,11 @@
 }
 
 .sidebar {
-  width: 300px;
+  width: 250px;
   padding: 20px;
   background-color: #252526;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .mainContent {
@@ -18,6 +19,7 @@
   padding: 20px;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
 
 .header {
@@ -31,10 +33,51 @@
   margin-bottom: 20px;
 }
 
-.sidebarSubHeader {
+.nav {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.navLink {
+  background: none;
+  border: none;
   color: #e0e0e0;
-  margin-top: 30px;
-  margin-bottom: 10px;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.navLink:hover {
+  background-color: #2a2d2e;
+}
+
+.navLink.active {
+  background-color: #37373d;
+  font-weight: bold;
+}
+
+.navLink svg {
+  margin-right: 10px;
+}
+
+.addBlockButton {
+  background-color: transparent;
+  color: #ffffff;
+  border: 1px solid #ffffff;
+  padding: 10px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 20px;
+}
+
+.addBlockButton:hover {
+  background-color: #ffffff;
+  color: #252526;
 }
 
 .select, .input, .textarea {
@@ -52,6 +95,26 @@
   resize: vertical;
 }
 
+.textareaWrapper {
+  margin-bottom: 20px;
+}
+
+.textareaLabel {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.textareaIcon {
+  margin-right: 5px;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 10px;
+}
+
 .button {
   background-color: #0e639c;
   color: white;
@@ -60,11 +123,18 @@
   border-radius: 4px;
   cursor: pointer;
   font-size: 16px;
-  margin-bottom: 10px;
 }
 
 .button:hover {
   background-color: #1177bb;
+}
+
+.button.removeButton {
+  background-color: #c41e3a;
+}
+
+.button.removeButton:hover {
+  background-color: #d4284f;
 }
 
 .chatHistory {
@@ -80,6 +150,13 @@
   margin-bottom: 15px;
   padding: 10px;
   border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.messageIcon {
+  margin-right: 10px;
+  font-size: 1.2em;
 }
 
 .userMessage {
@@ -93,22 +170,39 @@
 
 .inputSection {
   display: flex;
+  align-items: center;
+  background-color: #3c3c3c;
+  border-radius: 4px;
+  padding: 5px;
 }
 
 .input {
   flex-grow: 1;
-  border-radius: 4px 0 0 4px;
+  border: none;
+  background-color: transparent;
+  margin-bottom: 0;
+  outline: none;
 }
 
 .sendButton {
-  background-color: #0e639c;
-  color: white;
-  padding: 10px 20px;
+  background-color: transparent;
+  color: #0e639c;
   border: none;
-  border-radius: 0 4px 4px 0;
   cursor: pointer;
+  font-size: 20px;
+  padding: 5px 10px;
 }
 
 .sendButton:hover {
-  background-color: #1177bb;
+  color: #1177bb;
+}
+
+.contextBlockContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.addBlockForm {
+  display: flex;
+  flex-direction: column;
 }
