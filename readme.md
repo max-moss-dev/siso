@@ -4,6 +4,9 @@ Structured input, structured output
 
 UI interface web app aiming to provide a fast and intuitive way to provide LLM different blocks and types of inputs, define the output blocks and types of outputs. Mainly for project scaffolding, potentially some other use cases.
 
+# Model
+GPT-4o-mini
+
 ## Documentation
 
 - [Project Timeline](timeline.md)
