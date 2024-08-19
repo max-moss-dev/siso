@@ -1,0 +1,5 @@
+- [ ] Fix the UI
+- [ ] Auto update the content of blocks and remove the "Update" button
+- [ ] Improve AI generated content quality
+- [ ] Fix chat
+- [ ] Reload page at the same tab
