@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Union
@@ -7,6 +7,9 @@ import os
 from dotenv import load_dotenv
 import json
 import logging
+from sqlalchemy import create_engine, Column, String, JSON
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import declarative_base  # Updated import
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -28,20 +31,39 @@ app.add_middleware(
 # Initialize the OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Load context blocks from file or initialize with default values
-def load_context_blocks():
-    if os.path.exists("context_blocks.json"):
-        with open("context_blocks.json", "r") as f:
-            return json.load(f)
-    return {}
+# Database setup
+SQLALCHEMY_DATABASE_URL = "sqlite:///./context_blocks.db"
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()  # This line is now using the updated import
 
-# Save context blocks to file
-def save_context_blocks(blocks):
-    with open("context_blocks.json", "w") as f:
-        json.dump(blocks, f)
+class ContextBlockModel(Base):
+    __tablename__ = "context_blocks"
 
-# Initialize context blocks
-context_blocks = load_context_blocks()
+    name = Column(String, primary_key=True, index=True)
+    content = Column(JSON)
+    prompt = Column(String)
+    type = Column(String)
+
+Base.metadata.create_all(bind=engine)
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Replace load_context_blocks and save_context_blocks with database operations
+def load_context_blocks(db):
+    return {block.name: {"content": block.content, "prompt": block.prompt, "type": block.type}
+            for block in db.query(ContextBlockModel).all()}
+
+def save_context_block(db, name, block):
+    db_block = ContextBlockModel(name=name, **block)
+    db.merge(db_block)
+    db.commit()
 
 class Message(BaseModel):
     role: str
@@ -66,11 +88,11 @@ async def chat_options():
     return {}  # This is needed to handle the preflight request
 
 @app.post("/chat")
-async def chat(request: ChatRequest):
-    if request.selected_block is None or request.selected_block not in context_blocks:
+async def chat(request: ChatRequest, db: Session = Depends(get_db)):
+    if request.selected_block is None or request.selected_block not in load_context_blocks(db):
         context = "No context block selected. Proceeding with general conversation."
     else:
-        context = f"{context_blocks[request.selected_block]['prompt']} {context_blocks[request.selected_block]['content']}"
+        context = f"{load_context_blocks(db)[request.selected_block]['prompt']} {load_context_blocks(db)[request.selected_block]['content']}"
     
     messages = [
         {"role": "system", "content": context},
@@ -79,7 +101,7 @@ async def chat(request: ChatRequest):
     ]
     
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4-0613",
         messages=messages
     )
     
@@ -87,48 +109,46 @@ async def chat(request: ChatRequest):
     return {"response": bot_message}
 
 @app.get("/context_blocks")
-async def get_context_blocks():
-    return context_blocks
+async def get_context_blocks(db: Session = Depends(get_db)):
+    return load_context_blocks(db)
 
 @app.post("/context_blocks")
-async def add_context_block(block: ContextBlock):
-    if block.name in context_blocks:
+async def add_context_block(block: ContextBlock, db: Session = Depends(get_db)):
+    if block.name in load_context_blocks(db):
         raise HTTPException(status_code=400, detail="Block with this name already exists")
-    context_blocks[block.name] = {"content": block.content, "prompt": block.prompt, "type": block.type}
-    save_context_blocks(context_blocks)
+    save_context_block(db, block.name, {"content": block.content, "prompt": block.prompt, "type": block.type})
     return {"message": "Block added successfully"}
 
 @app.put("/context_blocks/{name}")
-async def update_context_block(name: str, block: ContextBlock):
-    if name not in context_blocks:
+async def update_context_block(name: str, block: ContextBlock, db: Session = Depends(get_db)):
+    if name not in load_context_blocks(db):
         raise HTTPException(status_code=404, detail="Block not found")
-    context_blocks[name] = {"content": block.content, "prompt": block.prompt, "type": block.type}
-    save_context_blocks(context_blocks)
+    save_context_block(db, name, {"content": block.content, "prompt": block.prompt, "type": block.type})
     return {"message": "Block updated successfully"}
 
 @app.delete("/context_blocks/{block_name}")
-async def delete_context_block(block_name: str):
+async def delete_context_block(block_name: str, db: Session = Depends(get_db)):
     logger.info(f"Attempting to delete block: {block_name}")
-    logger.info(f"Current context blocks: {list(context_blocks.keys())}")
-    if block_name not in context_blocks:
+    logger.info(f"Current context blocks: {list(load_context_blocks(db).keys())}")
+    if block_name not in load_context_blocks(db):
         logger.warning(f"Block {block_name} not found")
         raise HTTPException(status_code=404, detail="Context block not found")
-    del context_blocks[block_name]
-    save_context_blocks(context_blocks)
+    db.query(ContextBlockModel).filter_by(name=block_name).delete()
+    db.commit()
     logger.info(f"Block {block_name} deleted successfully")
-    logger.info(f"Updated context blocks: {list(context_blocks.keys())}")
+    logger.info(f"Updated context blocks: {list(load_context_blocks(db).keys())}")
     return {"message": f"Context block '{block_name}' deleted successfully"}
 
 @app.post("/improve_block")
-async def improve_block(request: ImproveBlockRequest):
-    if request.block_name not in context_blocks:
+async def improve_block(request: ImproveBlockRequest, db: Session = Depends(get_db)):
+    if request.block_name not in load_context_blocks(db):
         raise HTTPException(status_code=404, detail="Block not found")
     
-    block = context_blocks[request.block_name]
+    block = load_context_blocks(db)[request.block_name]
     current_content = block['content']
     current_prompt = block['prompt']
     block_type = block['type']
-    other_blocks = {name: block for name, block in context_blocks.items() if name != request.block_name}
+    other_blocks = {name: block for name, block in load_context_blocks(db).items() if name != request.block_name}
     
     # Define schema based on block type
     if block_type == 'string':
@@ -197,10 +217,9 @@ async def improve_block(request: ImproveBlockRequest):
     return {"improved_content": improved_content}
 
 @app.delete("/context_blocks")
-async def clear_all_context_blocks():
-    global context_blocks
-    context_blocks = {}
-    save_context_blocks(context_blocks)
+async def clear_all_context_blocks(db: Session = Depends(get_db)):
+    db.query(ContextBlockModel).delete()
+    db.commit()
     logger.info("All context blocks have been cleared")
     return {"message": "All context blocks have been cleared"}
 

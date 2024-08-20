@@ -1,5 +1,5 @@
 .streamlit/
-app_data.db
+context_blocks.db
 .vscode/
 .DS_Store
 .idea/

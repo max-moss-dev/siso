@@ -51,7 +51,7 @@ function App() {
     try {
       const response = await axios.post(`${API_URL}/chat`, {
         message,
-        history: chatHistory,
+        history: chatHistory.map(([userMessage, aiMessage]) => [userMessage, aiMessage]),
         selected_block: selectedBlock
       });
       const updatedHistory = [...newHistory.slice(-MAX_CHAT_HISTORY + 1), [message, response.data.response]];
