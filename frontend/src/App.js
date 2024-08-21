@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import styles from './App.module.css';
 import { FaComment, FaCube, FaPaperPlane, FaUser, FaRobot, FaCode, FaLightbulb, FaTrash, FaMagic, FaBroom } from 'react-icons/fa';
@@ -15,6 +15,7 @@ function App() {
   const [newBlock, setNewBlock] = useState({ name: '', content: '', prompt: '', type: 'string' });
   const [view, setView] = useState('chat');
   const [isUpdating, setIsUpdating] = useState(false);
+  const blockNameRef = useRef(null);
 
   useEffect(() => {
     fetchContextBlocks();
@@ -77,13 +78,15 @@ function App() {
   const handleUpdateBlock = async () => {
     setIsUpdating(true);
     try {
-      await axios.put(`${API_URL}/context_blocks/${selectedBlock}`, {
-        name: selectedBlock,
+      const updatedBlock = {
+        name: blockNameRef.current.innerText,
         content: contextBlocks[selectedBlock].content,
         prompt: contextBlocks[selectedBlock].prompt,
         type: contextBlocks[selectedBlock].type
-      });
-      fetchContextBlocks();
+      };
+      await axios.put(`${API_URL}/context_blocks/${selectedBlock}`, updatedBlock);
+      await fetchContextBlocks();
+      setSelectedBlock(blockNameRef.current.innerText);
     } catch (error) {
       console.error("Error updating block:", error);
     } finally {
@@ -191,7 +194,13 @@ function App() {
 
       return (
         <div className={styles.contextBlockContent}>
-          <h2>{selectedBlock}</h2>
+          <div
+            ref={blockNameRef}
+            className={`${styles.customTextarea} ${styles.blockNameTextarea}`}
+            contentEditable
+            onBlur={handleUpdateBlock}
+            dangerouslySetInnerHTML={{ __html: selectedBlock }}
+          />
           <label className={styles.textareaLabel}>
             <FaCode /> Block Content
           </label>

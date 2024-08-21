@@ -119,11 +119,25 @@ async def add_context_block(block: ContextBlock, db: Session = Depends(get_db)):
     save_context_block(db, block.name, {"content": block.content, "prompt": block.prompt, "type": block.type})
     return {"message": "Block added successfully"}
 
-@app.put("/context_blocks/{name}")
-async def update_context_block(name: str, block: ContextBlock, db: Session = Depends(get_db)):
-    if name not in load_context_blocks(db):
+@app.put("/context_blocks/{old_name}")
+async def update_context_block(old_name: str, block: ContextBlock, db: Session = Depends(get_db)):
+    if old_name not in load_context_blocks(db):
         raise HTTPException(status_code=404, detail="Block not found")
-    save_context_block(db, name, {"content": block.content, "prompt": block.prompt, "type": block.type})
+    
+    if old_name != block.name:
+        # Name has changed, delete the old block
+        db.query(ContextBlockModel).filter_by(name=old_name).delete()
+    
+    # Update or create the block with the new name and content
+    db_block = ContextBlockModel(
+        name=block.name,
+        content=block.content,
+        prompt=block.prompt,
+        type=block.type
+    )
+    db.merge(db_block)
+    db.commit()
+    
     return {"message": "Block updated successfully"}
 
 @app.delete("/context_blocks/{block_name}")
