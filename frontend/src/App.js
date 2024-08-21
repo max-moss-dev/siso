@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate, useParams, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
 import styles from './App.module.css';
 import { FaComment, FaCube, FaPaperPlane, FaUser, FaRobot, FaCode, FaLightbulb, FaTrash, FaMagic, FaBroom } from 'react-icons/fa';
-import ReactMarkdown from 'react-markdown';
 
 const API_URL = 'http://localhost:8000';
-const MAX_CHAT_HISTORY = 50;
+const MAX_CHAT_HISTORY = 10;
 
 function App() {
   return (
@@ -19,11 +19,12 @@ function App() {
 function AppContent() {
   const [message, setMessage] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
-  const [contextBlocks, setContextBlocks] = useState({});
+  const [contextBlocks, setContextBlocks] = useState([]);
   const [isUpdating, setIsUpdating] = useState(false);
   const [contextBlocksLoaded, setContextBlocksLoaded] = useState(false);
   const blockNameRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     fetchContextBlocks();
@@ -78,26 +79,23 @@ function AppContent() {
     localStorage.removeItem('chatHistory');
   };
 
-  const handleAddBlock = async (newBlock) => {
-    await axios.post(`${API_URL}/context_blocks`, newBlock);
-    fetchContextBlocks();
-    navigate('/chat');
-  };
-
-  const handleUpdateBlock = async (blockName) => {
+  const handleUpdateBlock = async (oldName) => {
     setIsUpdating(true);
     try {
+      const blockIndex = contextBlocks.findIndex(b => b.name === oldName);
       const updatedBlock = {
+        ...contextBlocks[blockIndex],
         name: blockNameRef.current.innerText,
-        content: contextBlocks[blockName].content,
-        prompt: contextBlocks[blockName].prompt,
-        type: contextBlocks[blockName].type
       };
-      await axios.put(`${API_URL}/context_blocks/${blockName}`, updatedBlock);
-      await fetchContextBlocks();
+      await axios.put(`${API_URL}/context_blocks/${oldName}`, updatedBlock);
       
-      // Update URL if the name has changed
-      if (blockName !== updatedBlock.name) {
+      setContextBlocks(prevBlocks => {
+        const newBlocks = [...prevBlocks];
+        newBlocks[blockIndex] = updatedBlock;
+        return newBlocks;
+      });
+      
+      if (oldName !== updatedBlock.name) {
         navigate(`/context/${updatedBlock.name}`, { replace: true });
       }
     } catch (error) {
@@ -107,20 +105,40 @@ function AppContent() {
     }
   };
 
+  const handleRemoveBlock = async (blockName) => {
+    try {
+      await axios.delete(`${API_URL}/context_blocks/${blockName}`);
+      setContextBlocks(prevBlocks => prevBlocks.filter(block => block.name !== blockName));
+      navigate('/chat');
+    } catch (error) {
+      console.error(`Error deleting block ${blockName}:`, error);
+    }
+  };
+
+  const handleAddBlock = async (newBlock) => {
+    try {
+      await axios.post(`${API_URL}/context_blocks`, newBlock);
+      setContextBlocks(prevBlocks => [...prevBlocks, newBlock]);
+      navigate('/chat');
+    } catch (error) {
+      console.error("Error adding new block:", error);
+    }
+  };
+
   const handleImproveBlock = async () => {
     setIsUpdating(true);
     try {
-      const response = await axios.post(`${API_URL}/improve_block`, {
-        block_name: window.location.pathname.split('/').pop()
-      });
+      const blockName = window.location.pathname.split('/').pop();
+      const response = await axios.post(`${API_URL}/improve_block`, { block_name: blockName });
       const improvedContent = response.data.improved_content;
-      setContextBlocks({
-        ...contextBlocks,
-        [window.location.pathname.split('/').pop()]: {
-          ...contextBlocks[window.location.pathname.split('/').pop()],
-          content: JSON.stringify(improvedContent, null, 2)
-        }
-      });
+      
+      setContextBlocks(prevBlocks => 
+        prevBlocks.map(block => 
+          block.name === blockName 
+            ? { ...block, content: improvedContent.content || JSON.stringify(improvedContent) } 
+            : block
+        )
+      );
     } catch (error) {
       console.error("Error improving block:", error);
     } finally {
@@ -128,21 +146,11 @@ function AppContent() {
     }
   };
 
-  const handleRemoveBlock = async (blockName) => {
-    try {
-      await axios.delete(`${API_URL}/context_blocks/${blockName}`);
-      fetchContextBlocks();
-      navigate('/chat');
-    } catch (error) {
-      console.error(`Error deleting block ${blockName}:`, error);
-    }
-  };
-
   const clearAllContextBlocks = async () => {
     if (window.confirm("Are you sure you want to delete all context blocks? This action cannot be undone.")) {
       try {
         await axios.delete(`${API_URL}/context_blocks`);
-        setContextBlocks({});
+        setContextBlocks([]);
         navigate('/chat');
       } catch (error) {
         console.error("Error clearing context blocks:", error);
@@ -200,7 +208,7 @@ function AppContent() {
 
   const ContextBlockView = () => {
     const { blockName } = useParams();
-    const block = contextBlocks[blockName];
+    const block = contextBlocks.find(b => b.name === blockName);
 
     if (!block) {
       return <Navigate to="/chat" />;
@@ -235,10 +243,17 @@ function AppContent() {
           <div
             className={`${styles.customTextarea} ${styles.contentTextarea}`}
             contentEditable
-            onBlur={(e) => setContextBlocks({
-              ...contextBlocks,
-              [blockName]: { ...block, content: e.target.innerText }
-            })}
+            onBlur={(e) => setContextBlocks(
+              contextBlocks.map(b => {
+                if (b.name === blockName) {
+                  return {
+                    ...b,
+                    content: e.target.innerText
+                  };
+                }
+                return b;
+              })
+            )}
             dangerouslySetInnerHTML={{ __html: content }}
           />
         ) : (
@@ -248,13 +263,17 @@ function AppContent() {
                 onBlur={(e) => {
                   const newItems = [...content];
                   newItems[index] = e.target.innerText;
-                  setContextBlocks({
-                    ...contextBlocks,
-                    [blockName]: { 
-                      ...block, 
-                      content: JSON.stringify({ items: newItems })
-                    }
-                  });
+                  setContextBlocks(
+                    contextBlocks.map(b => {
+                      if (b.name === blockName) {
+                        return {
+                          ...b,
+                          content: JSON.stringify({ items: newItems })
+                        };
+                      }
+                      return b;
+                    })
+                  );
                 }}
               >
                 {item}
@@ -268,10 +287,17 @@ function AppContent() {
         <div
           className={`${styles.customTextarea} ${styles.promptTextarea}`}
           contentEditable
-          onBlur={(e) => setContextBlocks({
-            ...contextBlocks,
-            [blockName]: { ...block, prompt: e.target.innerText }
-          })}
+          onBlur={(e) => setContextBlocks(
+            contextBlocks.map(b => {
+              if (b.name === blockName) {
+                return {
+                  ...b,
+                  prompt: e.target.innerText
+                };
+              }
+              return b;
+            })
+          )}
           dangerouslySetInnerHTML={{ __html: block.prompt || '' }}
         />
         <label className={styles.textareaLabel}>
@@ -279,10 +305,17 @@ function AppContent() {
         </label>
         <select
           value={block.type}
-          onChange={(e) => setContextBlocks({
-            ...contextBlocks,
-            [blockName]: { ...block, type: e.target.value }
-          })}
+          onChange={(e) => setContextBlocks(
+            contextBlocks.map(b => {
+              if (b.name === blockName) {
+                return {
+                  ...b,
+                  type: e.target.value
+                };
+              }
+              return b;
+            })
+          )}
         >
           <option value="string">String</option>
           <option value="list">List</option>
@@ -367,18 +400,18 @@ function AppContent() {
         <h2 className={styles.sidebarHeader}>Context Manager</h2>
         <nav className={styles.nav}>
           <button
-            className={`${styles.navLink} ${window.location.pathname === '/chat' ? styles.active : ''}`}
+            className={`${styles.navLink} ${location.pathname === '/chat' ? styles.active : ''}`}
             onClick={() => navigate('/chat')}
           >
             <FaComment /> Chat
           </button>
-          {Object.keys(contextBlocks).map(blockName => (
+          {contextBlocks.map(block => (
             <button
-              key={blockName}
-              className={`${styles.navLink} ${window.location.pathname === `/context/${blockName}` ? styles.active : ''}`}
-              onClick={() => navigate(`/context/${blockName}`)}
+              key={block.name}
+              className={`${styles.navLink} ${location.pathname === `/context/${block.name}` ? styles.active : ''}`}
+              onClick={() => navigate(`/context/${block.name}`)}
             >
-              <FaCube /> {blockName}
+              <FaCube /> {block.name}
             </button>
           ))}
         </nav>
