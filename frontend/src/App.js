@@ -84,17 +84,22 @@ function AppContent() {
     navigate('/chat');
   };
 
-  const handleUpdateBlock = async () => {
+  const handleUpdateBlock = async (blockName) => {
     setIsUpdating(true);
     try {
       const updatedBlock = {
         name: blockNameRef.current.innerText,
-        content: contextBlocks[window.location.pathname.split('/').pop()].content,
-        prompt: contextBlocks[window.location.pathname.split('/').pop()].prompt,
-        type: contextBlocks[window.location.pathname.split('/').pop()].type
+        content: contextBlocks[blockName].content,
+        prompt: contextBlocks[blockName].prompt,
+        type: contextBlocks[blockName].type
       };
-      await axios.put(`${API_URL}/context_blocks/${window.location.pathname.split('/').pop()}`, updatedBlock);
+      await axios.put(`${API_URL}/context_blocks/${blockName}`, updatedBlock);
       await fetchContextBlocks();
+      
+      // Update URL if the name has changed
+      if (blockName !== updatedBlock.name) {
+        navigate(`/context/${updatedBlock.name}`, { replace: true });
+      }
     } catch (error) {
       console.error("Error updating block:", error);
     } finally {
@@ -220,7 +225,7 @@ function AppContent() {
           ref={blockNameRef}
           className={`${styles.customTextarea} ${styles.blockNameTextarea}`}
           contentEditable
-          onBlur={handleUpdateBlock}
+          onBlur={() => handleUpdateBlock(blockName)}
           dangerouslySetInnerHTML={{ __html: blockName }}
         />
         <label className={styles.textareaLabel}>
@@ -285,7 +290,7 @@ function AppContent() {
         <div className={styles.buttonGroup}>
           <button 
             className={`${styles.confirmButton} ${isUpdating ? styles.loading : ''}`} 
-            onClick={handleUpdateBlock}
+            onClick={() => handleUpdateBlock(blockName)}
             disabled={isUpdating}
           >
             {isUpdating ? 'Updating...' : 'Update block'}
