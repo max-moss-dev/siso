@@ -1,3 +1,5 @@
+# This is the main FastAPI application file for the Structured GPT project
+
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -7,9 +9,10 @@ import os
 from dotenv import load_dotenv
 import json
 import logging
-from sqlalchemy import create_engine, Column, String, JSON
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import create_engine, Column, String, JSON, ForeignKey
+from sqlalchemy.orm import sessionmaker, Session, relationship, declarative_base
+from uuid import uuid4
+import sqlite3
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -37,14 +40,40 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+class ProjectModel(Base):
+    __tablename__ = "projects"
+
+    id = Column(String, primary_key=True, index=True)
+    name = Column(String)
+    context_blocks = relationship("ContextBlockModel", back_populates="project")
+
 class ContextBlockModel(Base):
     __tablename__ = "context_blocks"
 
-    name = Column(String, primary_key=True, index=True)
+    id = Column(String, primary_key=True, index=True)
+    name = Column(String, index=True)
     content = Column(JSON)
     prompt = Column(String)
     type = Column(String)
+    project_id = Column(String, ForeignKey("projects.id"))
+    project = relationship("ProjectModel", back_populates="context_blocks")
 
+def init_db():
+    # Drop existing tables and recreate them
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    # Verify the schema
+    with sqlite3.connect("./context_blocks.db") as conn:
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(context_blocks)")
+        columns = [column[1] for column in cursor.fetchall()]
+        print("Context Blocks Table Columns:", columns)
+
+# Call this function to initialize the database
+init_db()
+
+# Create the database tables
 Base.metadata.create_all(bind=engine)
 
 # Dependency
@@ -55,10 +84,11 @@ def get_db():
     finally:
         db.close()
 
-def load_context_blocks(db):
-    blocks = db.query(ContextBlockModel).all()
+def load_context_blocks(db, project_id):
+    blocks = db.query(ContextBlockModel).filter(ContextBlockModel.project_id == project_id).all()
     return [
         {
+            "id": block.id,
             "name": block.name,
             "content": block.content,
             "prompt": block.prompt,
@@ -67,14 +97,16 @@ def load_context_blocks(db):
         for block in blocks
     ]
 
-def save_context_block(db, name, block):
+def save_context_block(db, project_id, name, block):
     db_block = ContextBlockModel(
+        id=str(uuid4()),
         name=name,
         content=block['content'],
         prompt=block['prompt'],
-        type=block['type']
+        type=block['type'],
+        project_id=project_id
     )
-    db.merge(db_block)
+    db.add(db_block)
     db.commit()
 
 class Message(BaseModel):
@@ -94,6 +126,9 @@ class ContextBlock(BaseModel):
 
 class ImproveBlockRequest(BaseModel):
     block_name: str
+
+class ProjectCreate(BaseModel):
+    name: str
 
 @app.options("/chat")
 async def chat_options():
@@ -253,6 +288,83 @@ async def clear_all_context_blocks(db: Session = Depends(get_db)):
     db.commit()
     logger.info("All context blocks have been cleared")
     return {"message": "All context blocks have been cleared"}
+
+@app.post("/projects")
+async def create_project(project: ProjectCreate, db: Session = Depends(get_db)):
+    project_id = str(uuid4())
+    new_project = ProjectModel(id=project_id, name=project.name)
+    db.add(new_project)
+    db.commit()
+    return {"id": project_id, "name": project.name}
+
+@app.get("/projects")
+async def get_projects(db: Session = Depends(get_db)):
+    projects = db.query(ProjectModel).all()
+    return [{"id": project.id, "name": project.name} for project in projects]
+
+@app.get("/projects/{project_id}/context_blocks")
+async def get_context_blocks(project_id: str, db: Session = Depends(get_db)):
+    blocks = db.query(ContextBlockModel).filter(ContextBlockModel.project_id == project_id).all()
+    return [
+        {
+            "id": block.id,
+            "name": block.name,
+            "content": block.content,
+            "prompt": block.prompt,
+            "type": block.type
+        }
+        for block in blocks
+    ]
+
+@app.post("/projects/{project_id}/context_blocks")
+async def add_context_block(project_id: str, block: ContextBlock, db: Session = Depends(get_db)):
+    block_id = str(uuid4())
+    new_block = ContextBlockModel(
+        id=block_id,
+        name=block.name,
+        content=block.content,
+        prompt=block.prompt,
+        type=block.type,
+        project_id=project_id
+    )
+    db.add(new_block)
+    db.commit()
+    return {"message": "Block added successfully", "id": block_id}
+
+def get_context_blocks(project_id: str, db: Session):
+    blocks = db.query(ContextBlockModel).filter(ContextBlockModel.project_id == project_id).all()
+    return [
+        {
+            "id": block.id,
+            "name": block.name,
+            "content": block.content,
+            "prompt": block.prompt,
+            "type": block.type
+        }
+        for block in blocks
+    ]
+
+@app.post("/projects/{project_id}/chat")
+async def chat(project_id: str, request: ChatRequest, db: Session = Depends(get_db)):
+    blocks = {block['name']: block for block in get_context_blocks(project_id, db)}
+    if request.selected_block is None or request.selected_block not in blocks:
+        context = "No context block selected. Proceeding with general conversation."
+    else:
+        context = f"{blocks[request.selected_block]['prompt']} {blocks[request.selected_block]['content']}"
+    
+    messages = [
+        {"role": "system", "content": context},
+        *[{"role": "user" if i % 2 == 0 else "assistant", "content": m} for pair in request.history for i, m in enumerate(pair)],
+        {"role": "user", "content": request.message}
+    ]
+    
+    response = client.chat.completions.create(
+        model="gpt-4-0613",
+        messages=messages
+    )
+    
+    bot_message = response.choices[0].message.content
+    return {"response": bot_message}
 
 if __name__ == "__main__":
     import uvicorn

@@ -25,11 +25,36 @@ function AppContent() {
   const blockNameRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const [projects, setProjects] = useState([]);
+  const [currentProject, setCurrentProject] = useState(null);
 
   useEffect(() => {
-    fetchContextBlocks();
-    loadChatHistory();
+    fetchProjects();
   }, []);
+
+  const fetchProjects = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/projects`);
+      setProjects(response.data);
+      if (response.data.length > 0) {
+        setCurrentProject(response.data[0]);
+        fetchContextBlocks(response.data[0].id);
+      }
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+    }
+  };
+
+  const fetchContextBlocks = async (projectId) => {
+    try {
+      const response = await axios.get(`${API_URL}/projects/${projectId}/context_blocks`);
+      setContextBlocks(response.data);
+      setContextBlocksLoaded(true);
+    } catch (error) {
+      console.error("Error fetching context blocks:", error);
+      setContextBlocksLoaded(true);
+    }
+  };
 
   const loadChatHistory = () => {
     const savedHistory = localStorage.getItem('chatHistory');
@@ -42,17 +67,6 @@ function AppContent() {
     localStorage.setItem('chatHistory', JSON.stringify(history));
   };
 
-  const fetchContextBlocks = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/context_blocks`);
-      setContextBlocks(response.data);
-      setContextBlocksLoaded(true);
-    } catch (error) {
-      console.error("Error fetching context blocks:", error);
-      setContextBlocksLoaded(true);
-    }
-  };
-
   const handleSend = async () => {
     if (message.trim() === '') return;
     const newHistory = [...chatHistory, [message, '']];
@@ -61,7 +75,7 @@ function AppContent() {
     setMessage('');
 
     try {
-      const response = await axios.post(`${API_URL}/chat`, {
+      const response = await axios.post(`${API_URL}/projects/${currentProject.id}/chat`, {
         message,
         history: chatHistory.map(([userMessage, aiMessage]) => [userMessage, aiMessage]),
         selected_block: window.location.pathname.split('/').pop()
@@ -87,7 +101,7 @@ function AppContent() {
         ...contextBlocks[blockIndex],
         name: blockNameRef.current.innerText,
       };
-      await axios.put(`${API_URL}/context_blocks/${oldName}`, updatedBlock);
+      await axios.put(`${API_URL}/projects/${currentProject.id}/context_blocks/${oldName}`, updatedBlock);
       
       setContextBlocks(prevBlocks => {
         const newBlocks = [...prevBlocks];
@@ -107,7 +121,7 @@ function AppContent() {
 
   const handleRemoveBlock = async (blockName) => {
     try {
-      await axios.delete(`${API_URL}/context_blocks/${blockName}`);
+      await axios.delete(`${API_URL}/projects/${currentProject.id}/context_blocks/${blockName}`);
       setContextBlocks(prevBlocks => prevBlocks.filter(block => block.name !== blockName));
       navigate('/chat');
     } catch (error) {
@@ -117,7 +131,7 @@ function AppContent() {
 
   const handleAddBlock = async (newBlock) => {
     try {
-      await axios.post(`${API_URL}/context_blocks`, newBlock);
+      await axios.post(`${API_URL}/projects/${currentProject.id}/context_blocks`, newBlock);
       setContextBlocks(prevBlocks => [...prevBlocks, newBlock]);
       navigate('/chat');
     } catch (error) {
@@ -129,7 +143,7 @@ function AppContent() {
     setIsUpdating(true);
     try {
       const blockName = window.location.pathname.split('/').pop();
-      const response = await axios.post(`${API_URL}/improve_block`, { block_name: blockName });
+      const response = await axios.post(`${API_URL}/projects/${currentProject.id}/improve_block`, { block_name: blockName });
       const improvedContent = response.data.improved_content;
       
       setContextBlocks(prevBlocks => 
@@ -149,12 +163,23 @@ function AppContent() {
   const clearAllContextBlocks = async () => {
     if (window.confirm("Are you sure you want to delete all context blocks? This action cannot be undone.")) {
       try {
-        await axios.delete(`${API_URL}/context_blocks`);
+        await axios.delete(`${API_URL}/projects/${currentProject.id}/context_blocks`);
         setContextBlocks([]);
         navigate('/chat');
       } catch (error) {
         console.error("Error clearing context blocks:", error);
       }
+    }
+  };
+
+  const handleAddProject = async (name) => {
+    try {
+      const response = await axios.post(`${API_URL}/projects`, { name });
+      setProjects([...projects, response.data]);
+      setCurrentProject(response.data);
+      fetchContextBlocks(response.data.id);
+    } catch (error) {
+      console.error("Error adding new project:", error);
     }
   };
 
@@ -397,6 +422,25 @@ function AppContent() {
   return (
     <div className={styles.app}>
       <div className={styles.sidebar}>
+        <h2 className={styles.sidebarHeader}>Project Manager</h2>
+        <select
+          value={currentProject?.id}
+          onChange={(e) => {
+            const project = projects.find(p => p.id === e.target.value);
+            setCurrentProject(project);
+            fetchContextBlocks(project.id);
+          }}
+        >
+          {projects.map(project => (
+            <option key={project.id} value={project.id}>{project.name}</option>
+          ))}
+        </select>
+        <button onClick={() => {
+          const name = prompt("Enter project name:");
+          if (name) handleAddProject(name);
+        }}>
+          Add Project
+        </button>
         <h2 className={styles.sidebarHeader}>Context Manager</h2>
         <nav className={styles.nav}>
           <button
