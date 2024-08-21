@@ -1,21 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './App.module.css';
 import { FaComment, FaCube, FaPaperPlane, FaUser, FaRobot, FaCode, FaLightbulb, FaTrash, FaMagic, FaBroom } from 'react-icons/fa';
 import ReactMarkdown from 'react-markdown';
 
 const API_URL = 'http://localhost:8000';
-const MAX_CHAT_HISTORY = 50; // Maximum number of messages to keep
+const MAX_CHAT_HISTORY = 50;
 
 function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
+  );
+}
+
+function AppContent() {
   const [message, setMessage] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [contextBlocks, setContextBlocks] = useState({});
-  const [selectedBlock, setSelectedBlock] = useState('');
-  const [newBlock, setNewBlock] = useState({ name: '', content: '', prompt: '', type: 'string' });
-  const [view, setView] = useState('chat');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [contextBlocksLoaded, setContextBlocksLoaded] = useState(false);
   const blockNameRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchContextBlocks();
@@ -37,8 +45,10 @@ function App() {
     try {
       const response = await axios.get(`${API_URL}/context_blocks`);
       setContextBlocks(response.data);
+      setContextBlocksLoaded(true);
     } catch (error) {
       console.error("Error fetching context blocks:", error);
+      setContextBlocksLoaded(true);
     }
   };
 
@@ -53,7 +63,7 @@ function App() {
       const response = await axios.post(`${API_URL}/chat`, {
         message,
         history: chatHistory.map(([userMessage, aiMessage]) => [userMessage, aiMessage]),
-        selected_block: selectedBlock
+        selected_block: window.location.pathname.split('/').pop()
       });
       const updatedHistory = [...newHistory.slice(-MAX_CHAT_HISTORY + 1), [message, response.data.response]];
       setChatHistory(updatedHistory);
@@ -68,11 +78,10 @@ function App() {
     localStorage.removeItem('chatHistory');
   };
 
-  const handleAddBlock = async () => {
+  const handleAddBlock = async (newBlock) => {
     await axios.post(`${API_URL}/context_blocks`, newBlock);
-    setNewBlock({ name: '', content: '', prompt: '', type: 'string' });
     fetchContextBlocks();
-    setView('chat');
+    navigate('/chat');
   };
 
   const handleUpdateBlock = async () => {
@@ -80,13 +89,12 @@ function App() {
     try {
       const updatedBlock = {
         name: blockNameRef.current.innerText,
-        content: contextBlocks[selectedBlock].content,
-        prompt: contextBlocks[selectedBlock].prompt,
-        type: contextBlocks[selectedBlock].type
+        content: contextBlocks[window.location.pathname.split('/').pop()].content,
+        prompt: contextBlocks[window.location.pathname.split('/').pop()].prompt,
+        type: contextBlocks[window.location.pathname.split('/').pop()].type
       };
-      await axios.put(`${API_URL}/context_blocks/${selectedBlock}`, updatedBlock);
+      await axios.put(`${API_URL}/context_blocks/${window.location.pathname.split('/').pop()}`, updatedBlock);
       await fetchContextBlocks();
-      setSelectedBlock(blockNameRef.current.innerText);
     } catch (error) {
       console.error("Error updating block:", error);
     } finally {
@@ -98,13 +106,13 @@ function App() {
     setIsUpdating(true);
     try {
       const response = await axios.post(`${API_URL}/improve_block`, {
-        block_name: selectedBlock
+        block_name: window.location.pathname.split('/').pop()
       });
       const improvedContent = response.data.improved_content;
       setContextBlocks({
         ...contextBlocks,
-        [selectedBlock]: {
-          ...contextBlocks[selectedBlock],
+        [window.location.pathname.split('/').pop()]: {
+          ...contextBlocks[window.location.pathname.split('/').pop()],
           content: JSON.stringify(improvedContent, null, 2)
         }
       });
@@ -119,10 +127,7 @@ function App() {
     try {
       await axios.delete(`${API_URL}/context_blocks/${blockName}`);
       fetchContextBlocks();
-      if (selectedBlock === blockName) {
-        setSelectedBlock('');
-        setView('chat');
-      }
+      navigate('/chat');
     } catch (error) {
       console.error(`Error deleting block ${blockName}:`, error);
     }
@@ -133,8 +138,7 @@ function App() {
       try {
         await axios.delete(`${API_URL}/context_blocks`);
         setContextBlocks({});
-        setSelectedBlock('');
-        setView('chat');
+        navigate('/chat');
       } catch (error) {
         console.error("Error clearing context blocks:", error);
       }
@@ -142,214 +146,214 @@ function App() {
   };
 
   const renderMainContent = () => {
-    if (view === 'chat') {
-      return (
-        <div className={styles.chatContainer}>
-          <div className={styles.chatHistory}>
-            {chatHistory.map((chat, index) => (
-              <div key={index}>
-                <div className={`${styles.message} ${styles.userMessage}`}>
-                  <FaUser className={styles.messageIcon} /> 
-                  <ReactMarkdown>{chat[0]}</ReactMarkdown>
-                </div>
-                <div className={`${styles.message} ${styles.aiMessage}`}>
-                  <FaRobot className={styles.messageIcon} /> 
-                  <ReactMarkdown>{chat[1]}</ReactMarkdown>
-                </div>
+    if (!contextBlocksLoaded) {
+      return <div>Loading...</div>;
+    }
+
+    return (
+      <Routes>
+        <Route path="/" element={<Navigate to="/chat" />} />
+        <Route path="/chat" element={<ChatView />} />
+        <Route path="/context/:blockName" element={<ContextBlockView />} />
+        <Route path="/add-block" element={<AddBlockView />} />
+      </Routes>
+    );
+  };
+
+  const ChatView = () => {
+    return (
+      <div className={styles.chatContainer}>
+        <div className={styles.chatHistory}>
+          {chatHistory.map((chat, index) => (
+            <div key={index}>
+              <div className={`${styles.message} ${styles.userMessage}`}>
+                <FaUser className={styles.messageIcon} /> 
+                <ReactMarkdown>{chat[0]}</ReactMarkdown>
               </div>
-            ))}
-          </div>
-          <div className={styles.inputSection}>
-            <input
-              className={styles.input}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Type your message..."
-            />
-            <button className={styles.sendButton} onClick={handleSend}>
-              <FaPaperPlane />
-            </button>
-          </div>
+              <div className={`${styles.message} ${styles.aiMessage}`}>
+                <FaRobot className={styles.messageIcon} /> 
+                <ReactMarkdown>{chat[1]}</ReactMarkdown>
+              </div>
+            </div>
+          ))}
         </div>
-      );
-    } else if (view === 'context' && selectedBlock) {
-      const block = contextBlocks[selectedBlock];
-      if (!block) {
-        return <div>Selected block not found</div>;
-      }
-
-      let content;
-      if (block.type === 'list') {
-        try {
-          const parsedContent = JSON.parse(block.content);
-          content = Array.isArray(parsedContent.items) ? parsedContent.items : [];
-        } catch (error) {
-          console.error("Error parsing list content:", error);
-          content = [];
-        }
-      } else {
-        content = block.content || '';
-      }
-
-      return (
-        <div className={styles.contextBlockContent}>
-          <div
-            ref={blockNameRef}
-            className={`${styles.customTextarea} ${styles.blockNameTextarea}`}
-            contentEditable
-            onBlur={handleUpdateBlock}
-            dangerouslySetInnerHTML={{ __html: selectedBlock }}
-          />
-          <label className={styles.textareaLabel}>
-            <FaCode /> Block Content
-          </label>
-          {block.type === 'string' ? (
-            <div
-              className={`${styles.customTextarea} ${styles.contentTextarea}`}
-              contentEditable
-              onBlur={(e) => setContextBlocks({
-                ...contextBlocks,
-                [selectedBlock]: { ...block, content: e.target.innerText }
-              })}
-              dangerouslySetInnerHTML={{ __html: content }}
-            />
-          ) : (
-            <ul className={styles.listContent}>
-              {content.map((item, index) => (
-                <li key={index} contentEditable
-                  onBlur={(e) => {
-                    const newItems = [...content];
-                    newItems[index] = e.target.innerText;
-                    setContextBlocks({
-                      ...contextBlocks,
-                      [selectedBlock]: { 
-                        ...block, 
-                        content: JSON.stringify({ items: newItems })
-                      }
-                    });
-                  }}
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
-          )}
-          <label className={styles.textareaLabel}>
-            <FaLightbulb /> Block Prompt
-          </label>
-          <div
-            className={`${styles.customTextarea} ${styles.promptTextarea}`}
-            contentEditable
-            onBlur={(e) => setContextBlocks({
-              ...contextBlocks,
-              [selectedBlock]: { ...block, prompt: e.target.innerText }
-            })}
-            dangerouslySetInnerHTML={{ __html: block.prompt || '' }}
-          />
-          <label className={styles.textareaLabel}>
-            Block Type
-          </label>
-          <select
-            value={block.type}
-            onChange={(e) => setContextBlocks({
-              ...contextBlocks,
-              [selectedBlock]: { ...block, type: e.target.value }
-            })}
-          >
-            <option value="string">String</option>
-            <option value="list">List</option>
-          </select>
-          <div className={styles.buttonGroup}>
-            <button 
-              className={`${styles.confirmButton} ${isUpdating ? styles.loading : ''}`} 
-              onClick={handleUpdateBlock}
-              disabled={isUpdating}
-            >
-              {isUpdating ? 'Updating...' : 'Update block'}
-            </button>
-            <button 
-              className={`${styles.improveButton} ${isUpdating ? styles.loading : ''}`} 
-              onClick={handleImproveBlock}
-              disabled={isUpdating}
-            >
-              <FaMagic /> {block.content ? 'Improve' : 'Autofill'}
-            </button>
-            <button className={styles.outlineButton} onClick={() => handleRemoveBlock(selectedBlock)}>
-              Remove block
-            </button>
-          </div>
-        </div>
-      );
-    } else if (view === 'addBlock') {
-      return (
-        <div className={styles.addBlockForm}>
-          <label className={styles.textareaLabel}>Block Name</label>
+        <div className={styles.inputSection}>
           <input
             className={styles.input}
-            value={newBlock.name}
-            onChange={(e) => setNewBlock({ ...newBlock, name: e.target.value })}
-            placeholder=""
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+            placeholder="Type your message..."
           />
-          <label className={styles.textareaLabel}>
-            <FaLightbulb /> Block Prompt
-          </label>
-          <div
-            className={`${styles.customTextarea} ${styles.promptTextarea}`}
-            contentEditable
-            onBlur={(e) => setNewBlock({ ...newBlock, prompt: e.target.innerText })}
-            dangerouslySetInnerHTML={{ __html: newBlock.prompt }}
-          />
-          <label className={styles.textareaLabel}>
-            <FaCode /> Block Content
-          </label>
+          <button className={styles.sendButton} onClick={handleSend}>
+            <FaPaperPlane />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const ContextBlockView = () => {
+    const { blockName } = useParams();
+    const block = contextBlocks[blockName];
+
+    if (!block) {
+      return <Navigate to="/chat" />;
+    }
+
+    let content;
+    if (block.type === 'list') {
+      try {
+        const parsedContent = JSON.parse(block.content);
+        content = Array.isArray(parsedContent.items) ? parsedContent.items : [];
+      } catch (error) {
+        console.error("Error parsing list content:", error);
+        content = [];
+      }
+    } else {
+      content = block.content || '';
+    }
+
+    return (
+      <div className={styles.contextBlockContent}>
+        <div
+          ref={blockNameRef}
+          className={`${styles.customTextarea} ${styles.blockNameTextarea}`}
+          contentEditable
+          onBlur={handleUpdateBlock}
+          dangerouslySetInnerHTML={{ __html: blockName }}
+        />
+        <label className={styles.textareaLabel}>
+          <FaCode /> Block Content
+        </label>
+        {block.type === 'string' ? (
           <div
             className={`${styles.customTextarea} ${styles.contentTextarea}`}
             contentEditable
-            onBlur={(e) => setNewBlock({ ...newBlock, content: e.target.innerText })}
-            dangerouslySetInnerHTML={{ __html: newBlock.content }}
+            onBlur={(e) => setContextBlocks({
+              ...contextBlocks,
+              [blockName]: { ...block, content: e.target.innerText }
+            })}
+            dangerouslySetInnerHTML={{ __html: content }}
           />
-          <label className={styles.textareaLabel}>
-            Block Type
-          </label>
-          <select
-            value={newBlock.type}
-            onChange={(e) => setNewBlock({ ...newBlock, type: e.target.value })}
+        ) : (
+          <ul className={styles.listContent}>
+            {content.map((item, index) => (
+              <li key={index} contentEditable
+                onBlur={(e) => {
+                  const newItems = [...content];
+                  newItems[index] = e.target.innerText;
+                  setContextBlocks({
+                    ...contextBlocks,
+                    [blockName]: { 
+                      ...block, 
+                      content: JSON.stringify({ items: newItems })
+                    }
+                  });
+                }}
+              >
+                {item}
+              </li>
+            ))}
+          </ul>
+        )}
+        <label className={styles.textareaLabel}>
+          <FaLightbulb /> Block Prompt
+        </label>
+        <div
+          className={`${styles.customTextarea} ${styles.promptTextarea}`}
+          contentEditable
+          onBlur={(e) => setContextBlocks({
+            ...contextBlocks,
+            [blockName]: { ...block, prompt: e.target.innerText }
+          })}
+          dangerouslySetInnerHTML={{ __html: block.prompt || '' }}
+        />
+        <label className={styles.textareaLabel}>
+          Block Type
+        </label>
+        <select
+          value={block.type}
+          onChange={(e) => setContextBlocks({
+            ...contextBlocks,
+            [blockName]: { ...block, type: e.target.value }
+          })}
+        >
+          <option value="string">String</option>
+          <option value="list">List</option>
+        </select>
+        <div className={styles.buttonGroup}>
+          <button 
+            className={`${styles.confirmButton} ${isUpdating ? styles.loading : ''}`} 
+            onClick={handleUpdateBlock}
+            disabled={isUpdating}
           >
-            <option value="string">String</option>
-            <option value="list">List</option>
-          </select>
-          <button className={styles.confirmButton} onClick={handleAddBlock}>
-            Add context block
+            {isUpdating ? 'Updating...' : 'Update block'}
+          </button>
+          <button 
+            className={`${styles.improveButton} ${isUpdating ? styles.loading : ''}`} 
+            onClick={handleImproveBlock}
+            disabled={isUpdating}
+          >
+            <FaMagic /> {block.content ? 'Improve' : 'Autofill'}
+          </button>
+          <button className={styles.outlineButton} onClick={() => handleRemoveBlock(blockName)}>
+            Remove block
           </button>
         </div>
-      );
-    }
+      </div>
+    );
   };
 
-  const renderStructuredContent = (content) => {
-    try {
-      const parsedContent = JSON.parse(content);
-      return (
-        <div>
-          <div className={styles.mainContent}>
-            {parsedContent.main_content}
-          </div>
-          {parsedContent.additional_info && parsedContent.additional_info.length > 0 && (
-            <div className={styles.additionalInfo}>
-              <h3>Additional Information</h3>
-              <ul>
-                {parsedContent.additional_info.map((info, index) => (
-                  <li key={index}>{info}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      );
-    } catch (error) {
-      return <p>{content}</p>;
-    }
+  const AddBlockView = () => {
+    const [newBlock, setNewBlock] = useState({ name: '', content: '', prompt: '', type: 'string' });
+
+    const handleAddBlockSubmit = () => {
+      handleAddBlock(newBlock);
+    };
+
+    return (
+      <div className={styles.addBlockForm}>
+        <label className={styles.textareaLabel}>Block Name</label>
+        <input
+          className={styles.input}
+          value={newBlock.name}
+          onChange={(e) => setNewBlock({ ...newBlock, name: e.target.value })}
+          placeholder=""
+        />
+        <label className={styles.textareaLabel}>
+          <FaLightbulb /> Block Prompt
+        </label>
+        <div
+          className={`${styles.customTextarea} ${styles.promptTextarea}`}
+          contentEditable
+          onBlur={(e) => setNewBlock({ ...newBlock, prompt: e.target.innerText })}
+          dangerouslySetInnerHTML={{ __html: newBlock.prompt }}
+        />
+        <label className={styles.textareaLabel}>
+          <FaCode /> Block Content
+        </label>
+        <div
+          className={`${styles.customTextarea} ${styles.contentTextarea}`}
+          contentEditable
+          onBlur={(e) => setNewBlock({ ...newBlock, content: e.target.innerText })}
+          dangerouslySetInnerHTML={{ __html: newBlock.content }}
+        />
+        <label className={styles.textareaLabel}>
+          Block Type
+        </label>
+        <select
+          value={newBlock.type}
+          onChange={(e) => setNewBlock({ ...newBlock, type: e.target.value })}
+        >
+          <option value="string">String</option>
+          <option value="list">List</option>
+        </select>
+        <button className={styles.confirmButton} onClick={handleAddBlockSubmit}>
+          Add context block
+        </button>
+      </div>
+    );
   };
 
   return (
@@ -358,26 +362,23 @@ function App() {
         <h2 className={styles.sidebarHeader}>Context Manager</h2>
         <nav className={styles.nav}>
           <button
-            className={`${styles.navLink} ${view === 'chat' ? styles.active : ''}`}
-            onClick={() => setView('chat')}
+            className={`${styles.navLink} ${window.location.pathname === '/chat' ? styles.active : ''}`}
+            onClick={() => navigate('/chat')}
           >
             <FaComment /> Chat
           </button>
           {Object.keys(contextBlocks).map(blockName => (
             <button
               key={blockName}
-              className={`${styles.navLink} ${selectedBlock === blockName && view === 'context' ? styles.active : ''}`}
-              onClick={() => {
-                setSelectedBlock(blockName);
-                setView('context');
-              }}
+              className={`${styles.navLink} ${window.location.pathname === `/context/${blockName}` ? styles.active : ''}`}
+              onClick={() => navigate(`/context/${blockName}`)}
             >
               <FaCube /> {blockName}
             </button>
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
-          <button className={styles.addBlockButton} onClick={() => setView('addBlock')}>Add Context</button>
+          <button className={styles.addBlockButton} onClick={() => navigate('/add-block')}>Add Context</button>
           <button className={styles.clearHistoryButton} onClick={clearChatHistory}>
             <FaTrash /> Clear Chat History
           </button>
@@ -390,7 +391,6 @@ function App() {
       <div className={styles.mainContent}>
         <h1 className={styles.header}>Structured GPT</h1>
         {renderMainContent()}
-        {view === 'context' && selectedBlock && renderStructuredContent(contextBlocks[selectedBlock].content)}
       </div>
     </div>
   );

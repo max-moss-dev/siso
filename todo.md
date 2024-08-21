@@ -1,2 +1,0 @@
-- [ ] Reload page at the same tab
-- [ ] Editable name
