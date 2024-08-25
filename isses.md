@@ -1,0 +1,2 @@
+1. The switch between projects with select box is not working properly now
+2. Chat and context are not project specific, when click chat or context there is no any indication that the chat or context is related to the project

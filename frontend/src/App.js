@@ -27,18 +27,30 @@ function AppContent() {
   const location = useLocation();
   const [projects, setProjects] = useState([]);
   const [currentProject, setCurrentProject] = useState(null);
+  const { projectId } = useParams();
 
   useEffect(() => {
     fetchProjects();
   }, []);
 
+  useEffect(() => {
+    if (projects.length > 0 && projectId) {
+      const project = projects.find(p => p.id === projectId);
+      if (project) {
+        setCurrentProject(project);
+        fetchContextBlocks(project.id);
+      } else {
+        navigate('/projects/default');
+      }
+    }
+  }, [projects, projectId, navigate]);
+
   const fetchProjects = async () => {
     try {
       const response = await axios.get(`${API_URL}/projects`);
       setProjects(response.data);
-      if (response.data.length > 0) {
-        setCurrentProject(response.data[0]);
-        fetchContextBlocks(response.data[0].id);
+      if (response.data.length > 0 && !projectId) {
+        navigate(`/projects/${response.data[response.data.length - 1].id}`);
       }
     } catch (error) {
       console.error("Error fetching projects:", error);
@@ -176,11 +188,14 @@ function AppContent() {
     try {
       const response = await axios.post(`${API_URL}/projects`, { name });
       setProjects([...projects, response.data]);
-      setCurrentProject(response.data);
-      fetchContextBlocks(response.data.id);
+      navigate(`/projects/${response.data.id}`);
     } catch (error) {
       console.error("Error adding new project:", error);
     }
+  };
+
+  const handleProjectChange = (newProjectId) => {
+    navigate(`/projects/${newProjectId}`);
   };
 
   const renderMainContent = () => {
@@ -190,10 +205,10 @@ function AppContent() {
 
     return (
       <Routes>
-        <Route path="/" element={<Navigate to="/chat" />} />
-        <Route path="/chat" element={<ChatView />} />
-        <Route path="/context/:blockName" element={<ContextBlockView />} />
-        <Route path="/add-block" element={<AddBlockView />} />
+        <Route path="/" element={<Navigate to="chat" />} />
+        <Route path="chat" element={<ChatView />} />
+        <Route path="context/:blockName" element={<ContextBlockView />} />
+        <Route path="add-block" element={<AddBlockView />} />
       </Routes>
     );
   };
@@ -424,12 +439,8 @@ function AppContent() {
       <div className={styles.sidebar}>
         <h2 className={styles.sidebarHeader}>Project Manager</h2>
         <select
-          value={currentProject?.id}
-          onChange={(e) => {
-            const project = projects.find(p => p.id === e.target.value);
-            setCurrentProject(project);
-            fetchContextBlocks(project.id);
-          }}
+          value={currentProject?.id || ''}
+          onChange={(e) => handleProjectChange(e.target.value)}
         >
           {projects.map(project => (
             <option key={project.id} value={project.id}>{project.name}</option>
@@ -472,7 +483,16 @@ function AppContent() {
       
       <div className={styles.mainContent}>
         <h1 className={styles.header}>Structured GPT</h1>
-        {renderMainContent()}
+        <Routes>
+          <Route path="/" element={<Navigate to="/projects/default" />} />
+          <Route path="/projects/:projectId" element={
+            contextBlocksLoaded ? (
+              renderMainContent()
+            ) : (
+              <div>Loading...</div>
+            )
+          } />
+        </Routes>
       </div>
     </div>
   );
