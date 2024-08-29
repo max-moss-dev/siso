@@ -1,500 +1,333 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate, useParams, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import styles from './App.module.css';
-import { FaComment, FaCube, FaPaperPlane, FaUser, FaRobot, FaCode, FaLightbulb, FaTrash, FaMagic, FaBroom } from 'react-icons/fa';
+import { FaCube, FaPaperPlane, FaUser, FaRobot, FaPlus } from 'react-icons/fa';
 
 const API_URL = 'http://localhost:8000';
-const MAX_CHAT_HISTORY = 10;
-
-function App() {
-  return (
-    <Router>
-      <AppContent />
-    </Router>
-  );
-}
 
 function AppContent() {
+  const [instances, setInstances] = useState([]);
+  const [selectedInstance, setSelectedInstance] = useState(null);
   const [message, setMessage] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [contextBlocks, setContextBlocks] = useState([]);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [contextBlocksLoaded, setContextBlocksLoaded] = useState(false);
-  const blockNameRef = useRef(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showAddBlockModal, setShowAddBlockModal] = useState(false);
+  const { instanceId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [projects, setProjects] = useState([]);
-  const [currentProject, setCurrentProject] = useState(null);
-  const { projectId } = useParams();
+
+  const fetchContextBlocks = React.useCallback(async () => {
+    if (!selectedInstance) return;
+    try {
+      const response = await axios.get(`${API_URL}/instances/${selectedInstance}/context_blocks`);
+      setContextBlocks(response.data);
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching context blocks:", error);
+      setIsLoading(false);
+    }
+  }, [selectedInstance]);
 
   useEffect(() => {
-    fetchProjects();
+    const fetchInstances = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/instances`);
+        setInstances(response.data);
+      } catch (error) {
+        console.error("Error fetching instances:", error);
+      }
+    };
+
+    fetchInstances();
   }, []);
 
   useEffect(() => {
-    if (projects.length > 0 && projectId) {
-      const project = projects.find(p => p.id === projectId);
-      if (project) {
-        setCurrentProject(project);
-        fetchContextBlocks(project.id);
-      } else {
-        navigate('/projects/default');
-      }
+    if (instanceId) {
+      setSelectedInstance(instanceId);
     }
-  }, [projects, projectId, navigate]);
+  }, [instanceId]);
 
-  const fetchProjects = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/projects`);
-      setProjects(response.data);
-      if (response.data.length > 0 && !projectId) {
-        navigate(`/projects/${response.data[response.data.length - 1].id}`);
-      }
-    } catch (error) {
-      console.error("Error fetching projects:", error);
+  useEffect(() => {
+    if (selectedInstance) {
+      fetchContextBlocks();
     }
-  };
-
-  const fetchContextBlocks = async (projectId) => {
-    try {
-      const response = await axios.get(`${API_URL}/projects/${projectId}/context_blocks`);
-      setContextBlocks(response.data);
-      setContextBlocksLoaded(true);
-    } catch (error) {
-      console.error("Error fetching context blocks:", error);
-      setContextBlocksLoaded(true);
-    }
-  };
-
-  const loadChatHistory = () => {
-    const savedHistory = localStorage.getItem('chatHistory');
-    if (savedHistory) {
-      setChatHistory(JSON.parse(savedHistory));
-    }
-  };
-
-  const saveChatHistory = (history) => {
-    localStorage.setItem('chatHistory', JSON.stringify(history));
-  };
+  }, [selectedInstance, fetchContextBlocks]);
 
   const handleSend = async () => {
     if (message.trim() === '') return;
-    const newHistory = [...chatHistory, [message, '']];
+    const newHistory = [...chatHistory, { role: 'user', content: message }];
     setChatHistory(newHistory);
-    saveChatHistory(newHistory);
     setMessage('');
 
     try {
-      const response = await axios.post(`${API_URL}/projects/${currentProject.id}/chat`, {
+      const response = await axios.post(`${API_URL}/instances/${selectedInstance}/chat`, {
         message,
-        history: chatHistory.map(([userMessage, aiMessage]) => [userMessage, aiMessage]),
-        selected_block: window.location.pathname.split('/').pop()
+        history: newHistory,
       });
-      const updatedHistory = [...newHistory.slice(-MAX_CHAT_HISTORY + 1), [message, response.data.response]];
-      setChatHistory(updatedHistory);
-      saveChatHistory(updatedHistory);
+      setChatHistory([...newHistory, { role: 'assistant', content: response.data.response }]);
     } catch (error) {
       console.error("Error sending message:", error);
     }
   };
 
-  const clearChatHistory = () => {
-    setChatHistory([]);
-    localStorage.removeItem('chatHistory');
-  };
+  const handleAddBlock = async (blockType) => {
+    const newBlock = {
+      title: '',
+      content: blockType === 'list' ? [] : '',
+      type: blockType,
+    };
 
-  const handleUpdateBlock = async (oldName) => {
-    setIsUpdating(true);
     try {
-      const blockIndex = contextBlocks.findIndex(b => b.name === oldName);
-      const updatedBlock = {
-        ...contextBlocks[blockIndex],
-        name: blockNameRef.current.innerText,
-      };
-      await axios.put(`${API_URL}/projects/${currentProject.id}/context_blocks/${oldName}`, updatedBlock);
-      
-      setContextBlocks(prevBlocks => {
-        const newBlocks = [...prevBlocks];
-        newBlocks[blockIndex] = updatedBlock;
-        return newBlocks;
-      });
-      
-      if (oldName !== updatedBlock.name) {
-        navigate(`/context/${updatedBlock.name}`, { replace: true });
-      }
-    } catch (error) {
-      console.error("Error updating block:", error);
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const handleRemoveBlock = async (blockName) => {
-    try {
-      await axios.delete(`${API_URL}/projects/${currentProject.id}/context_blocks/${blockName}`);
-      setContextBlocks(prevBlocks => prevBlocks.filter(block => block.name !== blockName));
-      navigate('/chat');
-    } catch (error) {
-      console.error(`Error deleting block ${blockName}:`, error);
-    }
-  };
-
-  const handleAddBlock = async (newBlock) => {
-    try {
-      await axios.post(`${API_URL}/projects/${currentProject.id}/context_blocks`, newBlock);
-      setContextBlocks(prevBlocks => [...prevBlocks, newBlock]);
-      navigate('/chat');
+      const response = await axios.post(`${API_URL}/instances/${selectedInstance}/context_blocks`, newBlock);
+      setContextBlocks([...contextBlocks, response.data]);
+      setShowAddBlockModal(false);
     } catch (error) {
       console.error("Error adding new block:", error);
     }
   };
 
-  const handleImproveBlock = async () => {
-    setIsUpdating(true);
+  const handleDeleteBlock = async (blockId) => {
     try {
-      const blockName = window.location.pathname.split('/').pop();
-      const response = await axios.post(`${API_URL}/projects/${currentProject.id}/improve_block`, { block_name: blockName });
-      const improvedContent = response.data.improved_content;
-      
-      setContextBlocks(prevBlocks => 
-        prevBlocks.map(block => 
-          block.name === blockName 
-            ? { ...block, content: improvedContent.content || JSON.stringify(improvedContent) } 
-            : block
-        )
-      );
+      await axios.delete(`${API_URL}/instances/${selectedInstance}/context_blocks/${blockId}`);
+      setContextBlocks(contextBlocks.filter(block => block.id !== blockId));
     } catch (error) {
-      console.error("Error improving block:", error);
-    } finally {
-      setIsUpdating(false);
+      console.error("Error deleting block:", error);
     }
   };
 
-  const clearAllContextBlocks = async () => {
-    if (window.confirm("Are you sure you want to delete all context blocks? This action cannot be undone.")) {
-      try {
-        await axios.delete(`${API_URL}/projects/${currentProject.id}/context_blocks`);
-        setContextBlocks([]);
-        navigate('/chat');
-      } catch (error) {
-        console.error("Error clearing context blocks:", error);
-      }
-    }
-  };
-
-  const handleAddProject = async (name) => {
+  const handleUpdateBlock = async (blockId, updatedBlock) => {
     try {
-      const response = await axios.post(`${API_URL}/projects`, { name });
-      setProjects([...projects, response.data]);
-      navigate(`/projects/${response.data.id}`);
+      await axios.put(`${API_URL}/instances/${selectedInstance}/context_blocks/${blockId}`, updatedBlock);
+      setContextBlocks(contextBlocks.map(block => block.id === blockId ? updatedBlock : block));
     } catch (error) {
-      console.error("Error adding new project:", error);
+      console.error("Error updating block:", error);
     }
   };
 
-  const handleProjectChange = (newProjectId) => {
-    navigate(`/projects/${newProjectId}`);
-  };
-
-  const renderMainContent = () => {
-    if (!contextBlocksLoaded) {
-      return <div>Loading...</div>;
-    }
-
-    return (
-      <Routes>
-        <Route path="/" element={<Navigate to="chat" />} />
-        <Route path="chat" element={<ChatView />} />
-        <Route path="context/:blockName" element={<ContextBlockView />} />
-        <Route path="add-block" element={<AddBlockView />} />
-      </Routes>
-    );
-  };
-
-  const ChatView = () => {
-    return (
-      <div className={styles.chatContainer}>
-        <div className={styles.chatHistory}>
-          {chatHistory.map((chat, index) => (
-            <div key={index}>
-              <div className={`${styles.message} ${styles.userMessage}`}>
-                <FaUser className={styles.messageIcon} /> 
-                <ReactMarkdown>{chat[0]}</ReactMarkdown>
-              </div>
-              <div className={`${styles.message} ${styles.aiMessage}`}>
-                <FaRobot className={styles.messageIcon} /> 
-                <ReactMarkdown>{chat[1]}</ReactMarkdown>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className={styles.inputSection}>
-          <input
-            className={styles.input}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Type your message..."
-          />
-          <button className={styles.sendButton} onClick={handleSend}>
-            <FaPaperPlane />
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  const ContextBlockView = () => {
-    const { blockName } = useParams();
-    const block = contextBlocks.find(b => b.name === blockName);
-
-    if (!block) {
-      return <Navigate to="/chat" />;
-    }
-
-    let content;
-    if (block.type === 'list') {
-      try {
-        const parsedContent = JSON.parse(block.content);
-        content = Array.isArray(parsedContent.items) ? parsedContent.items : [];
-      } catch (error) {
-        console.error("Error parsing list content:", error);
-        content = [];
+  const handleGenerateContent = async (blockId) => {
+    try {
+      const response = await axios.post(`${API_URL}/instances/${selectedInstance}/generate_content`, { block_id: blockId });
+      const updatedBlock = contextBlocks.find(block => block.id === blockId);
+      if (updatedBlock) {
+        updatedBlock.content = response.data.content;
+        handleUpdateBlock(blockId, updatedBlock);
       }
-    } else {
-      content = block.content || '';
+    } catch (error) {
+      console.error("Error generating content:", error);
     }
-
-    return (
-      <div className={styles.contextBlockContent}>
-        <div
-          ref={blockNameRef}
-          className={`${styles.customTextarea} ${styles.blockNameTextarea}`}
-          contentEditable
-          onBlur={() => handleUpdateBlock(blockName)}
-          dangerouslySetInnerHTML={{ __html: blockName }}
-        />
-        <label className={styles.textareaLabel}>
-          <FaCode /> Block Content
-        </label>
-        {block.type === 'string' ? (
-          <div
-            className={`${styles.customTextarea} ${styles.contentTextarea}`}
-            contentEditable
-            onBlur={(e) => setContextBlocks(
-              contextBlocks.map(b => {
-                if (b.name === blockName) {
-                  return {
-                    ...b,
-                    content: e.target.innerText
-                  };
-                }
-                return b;
-              })
-            )}
-            dangerouslySetInnerHTML={{ __html: content }}
-          />
-        ) : (
-          <ul className={styles.listContent}>
-            {content.map((item, index) => (
-              <li key={index} contentEditable
-                onBlur={(e) => {
-                  const newItems = [...content];
-                  newItems[index] = e.target.innerText;
-                  setContextBlocks(
-                    contextBlocks.map(b => {
-                      if (b.name === blockName) {
-                        return {
-                          ...b,
-                          content: JSON.stringify({ items: newItems })
-                        };
-                      }
-                      return b;
-                    })
-                  );
-                }}
-              >
-                {item}
-              </li>
-            ))}
-          </ul>
-        )}
-        <label className={styles.textareaLabel}>
-          <FaLightbulb /> Block Prompt
-        </label>
-        <div
-          className={`${styles.customTextarea} ${styles.promptTextarea}`}
-          contentEditable
-          onBlur={(e) => setContextBlocks(
-            contextBlocks.map(b => {
-              if (b.name === blockName) {
-                return {
-                  ...b,
-                  prompt: e.target.innerText
-                };
-              }
-              return b;
-            })
-          )}
-          dangerouslySetInnerHTML={{ __html: block.prompt || '' }}
-        />
-        <label className={styles.textareaLabel}>
-          Block Type
-        </label>
-        <select
-          value={block.type}
-          onChange={(e) => setContextBlocks(
-            contextBlocks.map(b => {
-              if (b.name === blockName) {
-                return {
-                  ...b,
-                  type: e.target.value
-                };
-              }
-              return b;
-            })
-          )}
-        >
-          <option value="string">String</option>
-          <option value="list">List</option>
-        </select>
-        <div className={styles.buttonGroup}>
-          <button 
-            className={`${styles.confirmButton} ${isUpdating ? styles.loading : ''}`} 
-            onClick={() => handleUpdateBlock(blockName)}
-            disabled={isUpdating}
-          >
-            {isUpdating ? 'Updating...' : 'Update block'}
-          </button>
-          <button 
-            className={`${styles.improveButton} ${isUpdating ? styles.loading : ''}`} 
-            onClick={handleImproveBlock}
-            disabled={isUpdating}
-          >
-            <FaMagic /> {block.content ? 'Improve' : 'Autofill'}
-          </button>
-          <button className={styles.outlineButton} onClick={() => handleRemoveBlock(blockName)}>
-            Remove block
-          </button>
-        </div>
-      </div>
-    );
   };
 
-  const AddBlockView = () => {
-    const [newBlock, setNewBlock] = useState({ name: '', content: '', prompt: '', type: 'string' });
+  const handleInstanceSelect = (instanceId) => {
+    setSelectedInstance(instanceId);
+    navigate(`/instance/${instanceId}`);
+  };
 
-    const handleAddBlockSubmit = () => {
-      handleAddBlock(newBlock);
-    };
+  const handleAddInstance = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/instances`);
+      setInstances([...instances, response.data]);
+    } catch (error) {
+      console.error("Error adding new instance:", error);
+    }
+  };
+
+  const AddBlockModal = () => {
+    const [selectedType, setSelectedType] = useState('text');
 
     return (
-      <div className={styles.addBlockForm}>
-        <label className={styles.textareaLabel}>Block Name</label>
-        <input
-          className={styles.input}
-          value={newBlock.name}
-          onChange={(e) => setNewBlock({ ...newBlock, name: e.target.value })}
-          placeholder=""
-        />
-        <label className={styles.textareaLabel}>
-          <FaLightbulb /> Block Prompt
-        </label>
-        <div
-          className={`${styles.customTextarea} ${styles.promptTextarea}`}
-          contentEditable
-          onBlur={(e) => setNewBlock({ ...newBlock, prompt: e.target.innerText })}
-          dangerouslySetInnerHTML={{ __html: newBlock.prompt }}
-        />
-        <label className={styles.textareaLabel}>
-          <FaCode /> Block Content
-        </label>
-        <div
-          className={`${styles.customTextarea} ${styles.contentTextarea}`}
-          contentEditable
-          onBlur={(e) => setNewBlock({ ...newBlock, content: e.target.innerText })}
-          dangerouslySetInnerHTML={{ __html: newBlock.content }}
-        />
-        <label className={styles.textareaLabel}>
-          Block Type
-        </label>
-        <select
-          value={newBlock.type}
-          onChange={(e) => setNewBlock({ ...newBlock, type: e.target.value })}
-        >
-          <option value="string">String</option>
-          <option value="list">List</option>
-        </select>
-        <button className={styles.confirmButton} onClick={handleAddBlockSubmit}>
-          Add context block
-        </button>
+      <div className={styles.modal}>
+        <div className={styles.modalContent}>
+          <h2>Add New Block</h2>
+          <select
+            value={selectedType}
+            onChange={(e) => setSelectedType(e.target.value)}
+          >
+            <option value="text">Text</option>
+            <option value="list">List</option>
+          </select>
+          <div className={styles.modalButtons}>
+            <button onClick={() => handleAddBlock(selectedType)}>Add</button>
+            <button onClick={() => setShowAddBlockModal(false)}>Cancel</button>
+          </div>
+        </div>
       </div>
     );
   };
 
   return (
     <div className={styles.app}>
-      <div className={styles.sidebar}>
-        <h2 className={styles.sidebarHeader}>Project Manager</h2>
-        <select
-          value={currentProject?.id || ''}
-          onChange={(e) => handleProjectChange(e.target.value)}
+      <Sidebar 
+        instances={instances} 
+        selectedInstance={selectedInstance}
+        onInstanceSelect={handleInstanceSelect}
+        onAddInstance={handleAddInstance}
+      />
+      <MainArea
+        contextBlocks={contextBlocks}
+        isLoading={isLoading}
+        onAddBlock={() => setShowAddBlockModal(true)}
+        onUpdateBlock={handleUpdateBlock}
+        onDeleteBlock={handleDeleteBlock}
+        onGenerateContent={handleGenerateContent}
+        chatHistory={chatHistory}
+        message={message}
+        setMessage={setMessage}
+        onSendMessage={handleSend}
+      />
+      {showAddBlockModal && <AddBlockModal onAddBlock={handleAddBlock} onClose={() => setShowAddBlockModal(false)} />}
+    </div>
+  );
+}
+
+function Sidebar({ instances, selectedInstance, onInstanceSelect, onAddInstance }) {
+  return (
+    <div className={styles.sidebar}>
+      <h2>Instances</h2>
+      {instances.map(instance => (
+        <div 
+          key={instance.id} 
+          className={`${styles.instanceItem} ${instance.id === selectedInstance ? styles.selected : ''}`}
+          onClick={() => onInstanceSelect(instance.id)}
         >
-          {projects.map(project => (
-            <option key={project.id} value={project.id}>{project.name}</option>
-          ))}
-        </select>
-        <button onClick={() => {
-          const name = prompt("Enter project name:");
-          if (name) handleAddProject(name);
-        }}>
-          Add Project
-        </button>
-        <h2 className={styles.sidebarHeader}>Context Manager</h2>
-        <nav className={styles.nav}>
-          <button
-            className={`${styles.navLink} ${location.pathname === '/chat' ? styles.active : ''}`}
-            onClick={() => navigate('/chat')}
-          >
-            <FaComment /> Chat
-          </button>
-          {contextBlocks.map(block => (
-            <button
-              key={block.name}
-              className={`${styles.navLink} ${location.pathname === `/context/${block.name}` ? styles.active : ''}`}
-              onClick={() => navigate(`/context/${block.name}`)}
-            >
-              <FaCube /> {block.name}
-            </button>
-          ))}
-        </nav>
-        <div className={styles.sidebarFooter}>
-          <button className={styles.addBlockButton} onClick={() => navigate('/add-block')}>Add Context</button>
-          <button className={styles.clearHistoryButton} onClick={clearChatHistory}>
-            <FaTrash /> Clear Chat History
-          </button>
-          <button className={styles.clearBlocksButton} onClick={clearAllContextBlocks}>
-            <FaBroom /> Clear All Blocks
-          </button>
+          <FaCube /> {instance.name || `Instance ${instance.id}`}
         </div>
-      </div>
-      
-      <div className={styles.mainContent}>
-        <h1 className={styles.header}>Structured GPT</h1>
-        <Routes>
-          <Route path="/" element={<Navigate to="/projects/default" />} />
-          <Route path="/projects/:projectId" element={
-            contextBlocksLoaded ? (
-              renderMainContent()
-            ) : (
-              <div>Loading...</div>
-            )
-          } />
-        </Routes>
+      ))}
+      <button className={styles.addInstanceButton} onClick={onAddInstance}>
+        <FaPlus /> Add Instance
+      </button>
+    </div>
+  );
+}
+
+function MainArea({ contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, chatHistory, message, setMessage, onSendMessage }) {
+  return (
+    <div className={styles.mainContent}>
+      <h1>Structured GPT</h1>
+      <ContextBlocksArea 
+        contextBlocks={contextBlocks}
+        isLoading={isLoading}
+        onAddBlock={onAddBlock}
+        onUpdateBlock={onUpdateBlock}
+        onDeleteBlock={onDeleteBlock}
+        onGenerateContent={onGenerateContent}
+      />
+      <ChatArea 
+        chatHistory={chatHistory}
+        message={message}
+        setMessage={setMessage}
+        onSendMessage={onSendMessage}
+      />
+    </div>
+  );
+}
+
+function ContextBlocksArea({ contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent }) {
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div className={styles.contextBlocks}>
+      {contextBlocks.map(block => (
+        <ContextBlock 
+          key={block.id} 
+          block={block} 
+          onUpdate={onUpdateBlock}
+          onDelete={onDeleteBlock}
+          onGenerateContent={onGenerateContent}
+        />
+      ))}
+      <button onClick={onAddBlock} className={styles.addBlockButton}>
+        <FaPlus /> Add Block
+      </button>
+    </div>
+  );
+}
+
+function ContextBlock({ block, onUpdate, onDelete, onGenerateContent }) {
+  const handleUpdate = (field, value) => {
+    onUpdate(block.id, { ...block, [field]: value });
+  };
+
+  return (
+    <div className={styles.contextBlock}>
+      <input
+        value={block.title}
+        onChange={(e) => handleUpdate('title', e.target.value)}
+        placeholder="Block title"
+      />
+      {block.type === 'text' ? (
+        <textarea
+          value={block.content}
+          onChange={(e) => handleUpdate('content', e.target.value)}
+          placeholder="Block content"
+        />
+      ) : (
+        <ul>
+          {Array.isArray(block.content) ? block.content.map((item, index) => (
+            <li key={index}>
+              <input
+                value={item}
+                onChange={(e) => {
+                  const newContent = [...block.content];
+                  newContent[index] = e.target.value;
+                  handleUpdate('content', newContent);
+                }}
+              />
+            </li>
+          )) : null}
+          <button onClick={() => handleUpdate('content', [...(Array.isArray(block.content) ? block.content : []), ''])}>
+            Add item
+          </button>
+        </ul>
+      )}
+      <div className={styles.blockButtons}>
+        <button onClick={() => onDelete(block.id)}>Delete</button>
+        <button onClick={() => onGenerateContent(block.id)}>
+          {block.content ? 'Regenerate' : 'Generate'}
+        </button>
       </div>
     </div>
+  );
+}
+
+function ChatArea({ chatHistory, message, setMessage, onSendMessage }) {
+  return (
+    <div className={styles.chatContainer}>
+      <div className={styles.chatHistory}>
+        {chatHistory.map((chat, index) => (
+          <div key={index} className={`${styles.message} ${chat.role === 'user' ? styles.userMessage : styles.aiMessage}`}>
+            {chat.role === 'user' ? <FaUser /> : <FaRobot />}
+            <ReactMarkdown>{chat.content}</ReactMarkdown>
+          </div>
+        ))}
+      </div>
+      <div className={styles.inputSection}>
+        <input
+          className={styles.input}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && onSendMessage()}
+          placeholder="Type your message..."
+        />
+        <button className={styles.sendButton} onClick={onSendMessage}>
+          <FaPaperPlane />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<AppContent />} />
+        <Route path="/instance/:instanceId" element={<AppContent />} />
+      </Routes>
+    </Router>
   );
 }
 

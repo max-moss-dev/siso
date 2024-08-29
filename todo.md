@@ -1,5 +1,3 @@
-- Reload page on same project
-- Make the chat project specific
 - DB is cleared when server stopped
 - Edit project name
 - Remove project

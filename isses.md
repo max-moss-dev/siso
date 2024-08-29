@@ -1,2 +1,1 @@
-1. The switch between projects with select box is not working properly now
-2. Chat and context are not project specific, when click chat or context there is no any indication that the chat or context is related to the project
+It's nice we add all blocks on the same page of the main area (right behavior) but sidebar should contain separate instances not related to each other, while all blocks in main area should be related to each other and be under the same menu link in sidebar. You can name separate instances in sidebar whatever you want (projects or smth else). So the blocks in main area (may be just blocks or context blocks).
