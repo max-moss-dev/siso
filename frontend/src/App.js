@@ -73,9 +73,9 @@ function AppContent() {
     }
   };
 
-  const handleAddBlock = async (blockType) => {
+  const handleAddBlock = async (blockTitle, blockType) => {
     const newBlock = {
-      title: '',
+      title: blockTitle,
       content: blockType === 'list' ? [] : '',
       type: blockType,
     };
@@ -161,22 +161,42 @@ function AppContent() {
 
   const AddBlockModal = () => {
     const [selectedType, setSelectedType] = useState('text');
+    const [blockTitle, setBlockTitle] = useState('');
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (blockTitle.trim()) {
+        handleAddBlock(blockTitle.trim(), selectedType);
+        setBlockTitle('');
+      }
+    };
 
     return (
       <div className={styles.modal}>
         <div className={styles.modalContent}>
           <h2>Add New Block</h2>
-          <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-          >
-            <option value="text">Text</option>
-            <option value="list">List</option>
-          </select>
-          <div className={styles.modalButtons}>
-            <button onClick={() => handleAddBlock(selectedType)}>Add</button>
-            <button onClick={() => setShowAddBlockModal(false)}>Cancel</button>
-          </div>
+          <form onSubmit={handleSubmit}>
+            <input
+              type="text"
+              value={blockTitle}
+              onChange={(e) => setBlockTitle(e.target.value)}
+              placeholder="Enter block title"
+              className={styles.input}
+              required
+            />
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className={styles.select}
+            >
+              <option value="text">Text</option>
+              <option value="list">List</option>
+            </select>
+            <div className={styles.modalButtons}>
+              <button type="submit">Add</button>
+              <button type="button" onClick={() => setShowAddBlockModal(false)}>Cancel</button>
+            </div>
+          </form>
         </div>
       </div>
     );
