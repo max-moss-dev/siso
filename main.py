@@ -36,8 +36,8 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-class InstanceModel(Base):
-    __tablename__ = "instances"
+class ProjectModel(Base):
+    __tablename__ = "projects"
 
     id = Column(String, primary_key=True, index=True)
     name = Column(String, index=True)
@@ -46,14 +46,14 @@ class ContextBlockModel(Base):
     __tablename__ = "context_blocks"
 
     id = Column(String, primary_key=True, index=True)
-    instance_id = Column(String, ForeignKey("instances.id"))
+    project_id = Column(String, ForeignKey("projects.id"))
     title = Column(String, index=True)
     content = Column(JSON)
     type = Column(String)
 
-    instance = relationship("InstanceModel", back_populates="context_blocks")
+    project = relationship("ProjectModel", back_populates="context_blocks")
 
-InstanceModel.context_blocks = relationship("ContextBlockModel", back_populates="instance")
+ProjectModel.context_blocks = relationship("ContextBlockModel", back_populates="project")
 
 def recreate_database():
     inspector = inspect(engine)
@@ -85,6 +85,7 @@ class GenerateContentRequest(BaseModel):
 async def add_context_block(project_id: str, block: ContextBlock, db: Session = Depends(get_db)):
     db_block = ContextBlockModel(
         id=str(uuid4()),
+        project_id=project_id,
         title=block.title,
         content=block.content,
         type=block.type
@@ -96,12 +97,12 @@ async def add_context_block(project_id: str, block: ContextBlock, db: Session = 
 
 @app.get("/projects/{project_id}/context_blocks")
 async def get_context_blocks(project_id: str, db: Session = Depends(get_db)):
-    blocks = db.query(ContextBlockModel).all()
+    blocks = db.query(ContextBlockModel).filter(ContextBlockModel.project_id == project_id).all()
     return blocks
 
 @app.put("/projects/{project_id}/context_blocks/{block_id}")
 async def update_context_block(project_id: str, block_id: str, block: ContextBlock, db: Session = Depends(get_db)):
-    db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == block_id).first()
+    db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == block_id, ContextBlockModel.project_id == project_id).first()
     if db_block is None:
         raise HTTPException(status_code=404, detail="Context block not found")
     db_block.title = block.title
@@ -113,7 +114,7 @@ async def update_context_block(project_id: str, block_id: str, block: ContextBlo
 
 @app.delete("/projects/{project_id}/context_blocks/{block_id}")
 async def delete_context_block(project_id: str, block_id: str, db: Session = Depends(get_db)):
-    db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == block_id).first()
+    db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == block_id, ContextBlockModel.project_id == project_id).first()
     if db_block is None:
         raise HTTPException(status_code=404, detail="Context block not found")
     db.delete(db_block)
@@ -122,7 +123,7 @@ async def delete_context_block(project_id: str, block_id: str, db: Session = Dep
 
 @app.post("/projects/{project_id}/chat")
 async def chat(project_id: str, request: ChatRequest, db: Session = Depends(get_db)):
-    blocks = db.query(ContextBlockModel).all()
+    blocks = db.query(ContextBlockModel).filter(ContextBlockModel.project_id == project_id).all()
     context = "\n".join([f"{block.title}: {block.content}" for block in blocks])
     
     messages = [
@@ -141,7 +142,7 @@ async def chat(project_id: str, request: ChatRequest, db: Session = Depends(get_
 
 @app.post("/projects/{project_id}/generate_content")
 async def generate_content(project_id: str, request: GenerateContentRequest, db: Session = Depends(get_db)):
-    db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == request.block_id).first()
+    db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == request.block_id, ContextBlockModel.project_id == project_id).first()
     if db_block is None:
         raise HTTPException(status_code=404, detail="Context block not found")
 
@@ -166,29 +167,29 @@ async def generate_content(project_id: str, request: GenerateContentRequest, db:
     
     return {"content": generated_content}
 
-@app.post("/instances")
-async def create_instance(db: Session = Depends(get_db)):
-    new_instance = InstanceModel(id=str(uuid4()), name=f"Instance {uuid4().hex[:8]}")
-    db.add(new_instance)
+@app.post("/projects")
+async def create_project(db: Session = Depends(get_db)):
+    new_project = ProjectModel(id=str(uuid4()), name=f"Project {uuid4().hex[:8]}")
+    db.add(new_project)
     db.commit()
-    db.refresh(new_instance)
-    return new_instance
+    db.refresh(new_project)
+    return new_project
 
-@app.get("/instances")
-async def get_instances(db: Session = Depends(get_db)):
-    instances = db.query(InstanceModel).all()
-    return instances
+@app.get("/projects")
+async def get_projects(db: Session = Depends(get_db)):
+    projects = db.query(ProjectModel).all()
+    return projects
 
-@app.get("/instances/{instance_id}/context_blocks")
-async def get_context_blocks(instance_id: str, db: Session = Depends(get_db)):
-    blocks = db.query(ContextBlockModel).filter(ContextBlockModel.instance_id == instance_id).all()
+@app.get("/projects/{project_id}/context_blocks")
+async def get_context_blocks(project_id: str, db: Session = Depends(get_db)):
+    blocks = db.query(ContextBlockModel).filter(ContextBlockModel.project_id == project_id).all()
     return blocks
 
-@app.post("/instances/{instance_id}/context_blocks")
-async def add_context_block(instance_id: str, block: ContextBlock, db: Session = Depends(get_db)):
+@app.post("/projects/{project_id}/context_blocks")
+async def add_context_block(project_id: str, block: ContextBlock, db: Session = Depends(get_db)):
     db_block = ContextBlockModel(
         id=str(uuid4()),
-        instance_id=instance_id,
+        project_id=project_id,
         title=block.title,
         content=block.content,
         type=block.type
@@ -198,9 +199,9 @@ async def add_context_block(instance_id: str, block: ContextBlock, db: Session =
     db.refresh(db_block)
     return db_block
 
-@app.post("/instances/{instance_id}/chat")
-async def chat(instance_id: str, request: ChatRequest, db: Session = Depends(get_db)):
-    blocks = db.query(ContextBlockModel).filter(ContextBlockModel.instance_id == instance_id).all()
+@app.post("/projects/{project_id}/chat")
+async def chat(project_id: str, request: ChatRequest, db: Session = Depends(get_db)):
+    blocks = db.query(ContextBlockModel).filter(ContextBlockModel.project_id == project_id).all()
     context = "\n".join([f"{block.title}: {block.content}" for block in blocks])
     
     messages = [
@@ -217,9 +218,9 @@ async def chat(instance_id: str, request: ChatRequest, db: Session = Depends(get
     bot_message = response.choices[0].message.content
     return {"response": bot_message}
 
-@app.post("/instances/{instance_id}/generate_content")
-async def generate_content(instance_id: str, request: GenerateContentRequest, db: Session = Depends(get_db)):
-    db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == request.block_id, ContextBlockModel.instance_id == instance_id).first()
+@app.post("/projects/{project_id}/generate_content")
+async def generate_content(project_id: str, request: GenerateContentRequest, db: Session = Depends(get_db)):
+    db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == request.block_id, ContextBlockModel.project_id == project_id).first()
     if db_block is None:
         raise HTTPException(status_code=404, detail="Context block not found")
 
@@ -244,9 +245,9 @@ async def generate_content(instance_id: str, request: GenerateContentRequest, db
     
     return {"content": generated_content}
 
-@app.put("/instances/{instance_id}/context_blocks/{block_id}")
-async def update_context_block(instance_id: str, block_id: str, block: ContextBlock, db: Session = Depends(get_db)):
-    db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == block_id, ContextBlockModel.instance_id == instance_id).first()
+@app.put("/projects/{project_id}/context_blocks/{block_id}")
+async def update_context_block(project_id: str, block_id: str, block: ContextBlock, db: Session = Depends(get_db)):
+    db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == block_id, ContextBlockModel.project_id == project_id).first()
     if db_block is None:
         raise HTTPException(status_code=404, detail="Context block not found")
     

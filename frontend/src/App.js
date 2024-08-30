@@ -8,52 +8,52 @@ import { FaCube, FaPaperPlane, FaUser, FaRobot, FaPlus } from 'react-icons/fa';
 const API_URL = 'http://localhost:8000';
 
 function AppContent() {
-  const [instances, setInstances] = useState([]);
-  const [selectedInstance, setSelectedInstance] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState(null);
   const [message, setMessage] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [contextBlocks, setContextBlocks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddBlockModal, setShowAddBlockModal] = useState(false);
-  const { instanceId } = useParams();
+  const { projectId } = useParams();
   const navigate = useNavigate();
 
   const fetchContextBlocks = React.useCallback(async () => {
-    if (!selectedInstance) return;
+    if (!selectedProject) return;
     try {
-      const response = await axios.get(`${API_URL}/instances/${selectedInstance}/context_blocks`);
+      const response = await axios.get(`${API_URL}/projects/${selectedProject}/context_blocks`);
       setContextBlocks(response.data);
       setIsLoading(false);
     } catch (error) {
       console.error("Error fetching context blocks:", error);
       setIsLoading(false);
     }
-  }, [selectedInstance]);
+  }, [selectedProject]);
 
   useEffect(() => {
-    const fetchInstances = async () => {
+    const fetchProjects = async () => {
       try {
-        const response = await axios.get(`${API_URL}/instances`);
-        setInstances(response.data);
+        const response = await axios.get(`${API_URL}/projects`);
+        setProjects(response.data);
       } catch (error) {
-        console.error("Error fetching instances:", error);
+        console.error("Error fetching projects:", error);
       }
     };
 
-    fetchInstances();
+    fetchProjects();
   }, []);
 
   useEffect(() => {
-    if (instanceId) {
-      setSelectedInstance(instanceId);
+    if (projectId) {
+      setSelectedProject(projectId);
     }
-  }, [instanceId]);
+  }, [projectId]);
 
   useEffect(() => {
-    if (selectedInstance) {
+    if (selectedProject) {
       fetchContextBlocks();
     }
-  }, [selectedInstance, fetchContextBlocks]);
+  }, [selectedProject, fetchContextBlocks]);
 
   const handleSend = async () => {
     if (message.trim() === '') return;
@@ -62,7 +62,7 @@ function AppContent() {
     setMessage('');
 
     try {
-      const response = await axios.post(`${API_URL}/instances/${selectedInstance}/chat`, {
+      const response = await axios.post(`${API_URL}/projects/${selectedProject}/chat`, {
         message,
         history: newHistory,
       });
@@ -80,7 +80,7 @@ function AppContent() {
     };
 
     try {
-      const response = await axios.post(`${API_URL}/instances/${selectedInstance}/context_blocks`, newBlock);
+      const response = await axios.post(`${API_URL}/projects/${selectedProject}/context_blocks`, newBlock);
       setContextBlocks([...contextBlocks, response.data]);
       setShowAddBlockModal(false);
     } catch (error) {
@@ -90,7 +90,7 @@ function AppContent() {
 
   const handleDeleteBlock = async (blockId) => {
     try {
-      await axios.delete(`${API_URL}/instances/${selectedInstance}/context_blocks/${blockId}`);
+      await axios.delete(`${API_URL}/projects/${selectedProject}/context_blocks/${blockId}`);
       setContextBlocks(contextBlocks.filter(block => block.id !== blockId));
     } catch (error) {
       console.error("Error deleting block:", error);
@@ -99,7 +99,7 @@ function AppContent() {
 
   const handleUpdateBlock = async (blockId, updatedBlock) => {
     try {
-      await axios.put(`${API_URL}/instances/${selectedInstance}/context_blocks/${blockId}`, updatedBlock);
+      await axios.put(`${API_URL}/projects/${selectedProject}/context_blocks/${blockId}`, updatedBlock);
       setContextBlocks(contextBlocks.map(block => block.id === blockId ? updatedBlock : block));
     } catch (error) {
       console.error("Error updating block:", error);
@@ -108,7 +108,7 @@ function AppContent() {
 
   const handleGenerateContent = async (blockId) => {
     try {
-      const response = await axios.post(`${API_URL}/instances/${selectedInstance}/generate_content`, { block_id: blockId });
+      const response = await axios.post(`${API_URL}/projects/${selectedProject}/generate_content`, { block_id: blockId });
       const updatedBlock = contextBlocks.find(block => block.id === blockId);
       if (updatedBlock) {
         updatedBlock.content = response.data.content;
@@ -119,17 +119,17 @@ function AppContent() {
     }
   };
 
-  const handleInstanceSelect = (instanceId) => {
-    setSelectedInstance(instanceId);
-    navigate(`/instance/${instanceId}`);
+  const handleProjectSelect = (projectId) => {
+    setSelectedProject(projectId);
+    navigate(`/project/${projectId}`);
   };
 
-  const handleAddInstance = async () => {
+  const handleAddProject = async () => {
     try {
-      const response = await axios.post(`${API_URL}/instances`);
-      setInstances([...instances, response.data]);
+      const response = await axios.post(`${API_URL}/projects`);
+      setProjects([...projects, response.data]);
     } catch (error) {
-      console.error("Error adding new instance:", error);
+      console.error("Error adding new project:", error);
     }
   };
 
@@ -159,10 +159,10 @@ function AppContent() {
   return (
     <div className={styles.app}>
       <Sidebar 
-        instances={instances} 
-        selectedInstance={selectedInstance}
-        onInstanceSelect={handleInstanceSelect}
-        onAddInstance={handleAddInstance}
+        projects={projects} 
+        selectedProject={selectedProject}
+        onProjectSelect={handleProjectSelect}
+        onAddProject={handleAddProject}
       />
       <MainArea
         contextBlocks={contextBlocks}
@@ -181,21 +181,21 @@ function AppContent() {
   );
 }
 
-function Sidebar({ instances, selectedInstance, onInstanceSelect, onAddInstance }) {
+function Sidebar({ projects, selectedProject, onProjectSelect, onAddProject }) {
   return (
     <div className={styles.sidebar}>
-      <h2>Instances</h2>
-      {instances.map(instance => (
+      <h2>Projects</h2>
+      {projects.map(project => (
         <div 
-          key={instance.id} 
-          className={`${styles.instanceItem} ${instance.id === selectedInstance ? styles.selected : ''}`}
-          onClick={() => onInstanceSelect(instance.id)}
+          key={project.id} 
+          className={`${styles.projectItem} ${project.id === selectedProject ? styles.selected : ''}`}
+          onClick={() => onProjectSelect(project.id)}
         >
-          <FaCube /> {instance.name || `Instance ${instance.id}`}
+          <FaCube /> {project.name || `Project ${project.id}`}
         </div>
       ))}
-      <button className={styles.addInstanceButton} onClick={onAddInstance}>
-        <FaPlus /> Add Instance
+      <button className={styles.addProjectButton} onClick={onAddProject}>
+        <FaPlus /> Add Project
       </button>
     </div>
   );
@@ -325,7 +325,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<AppContent />} />
-        <Route path="/instance/:instanceId" element={<AppContent />} />
+        <Route path="/project/:projectId" element={<AppContent />} />
       </Routes>
     </Router>
   );
