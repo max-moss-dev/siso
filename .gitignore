@@ -9,3 +9,4 @@ package-lock.json
 pnpm-lock.yaml
 yarn.lock
 context_blocks.json
+persistent_db.sqlite

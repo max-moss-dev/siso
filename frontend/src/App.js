@@ -225,11 +225,10 @@ function AppContent() {
         selectedProject={selectedProject}
         onProjectSelect={handleProjectSelect}
         onAddProject={() => setShowAddProjectModal(true)}
-        onUpdateProject={handleUpdateProject}
-        onDeleteProject={handleDeleteProject}
       />
       <MainArea
         projectName={projects.find(p => p.id === selectedProject)?.name || 'No Project Selected'}
+        projectId={selectedProject}
         contextBlocks={contextBlocks}
         isLoading={isLoading}
         onAddBlock={() => setShowAddBlockModal(true)}
@@ -240,6 +239,8 @@ function AppContent() {
         message={message}
         setMessage={setMessage}
         onSendMessage={handleSend}
+        onUpdateProject={handleUpdateProject}
+        onDeleteProject={handleDeleteProject}
       />
       {showAddBlockModal && <AddBlockModal onAddBlock={handleAddBlock} onClose={() => setShowAddBlockModal(false)} />}
       {showAddProjectModal && <AddProjectModal onAddProject={handleAddProject} onClose={() => setShowAddProjectModal(false)} />}
@@ -247,30 +248,17 @@ function AppContent() {
   );
 }
 
-function Sidebar({ projects, selectedProject, onProjectSelect, onAddProject, onUpdateProject, onDeleteProject }) {
-  const [editingProject, setEditingProject] = useState(null);
-
+function Sidebar({ projects, selectedProject, onProjectSelect, onAddProject }) {
   return (
     <div className={styles.sidebar}>
       <h2>Projects</h2>
       {projects.map(project => (
-        <div key={project.id} className={`${styles.projectItem} ${project.id === selectedProject ? styles.selected : ''}`}>
-          {editingProject === project.id ? (
-            <input
-              value={project.name}
-              onChange={(e) => onUpdateProject(project.id, e.target.value)}
-              onBlur={() => setEditingProject(null)}
-              autoFocus
-            />
-          ) : (
-            <>
-              <span onClick={() => onProjectSelect(project.id)}>
-                <FaCube /> {project.name}
-              </span>
-              <button onClick={() => setEditingProject(project.id)}>Edit</button>
-              <button onClick={() => onDeleteProject(project.id)}>Delete</button>
-            </>
-          )}
+        <div 
+          key={project.id} 
+          className={`${styles.projectItem} ${project.id === selectedProject ? styles.selected : ''}`}
+          onClick={() => onProjectSelect(project.id)}
+        >
+          <FaCube /> {project.name}
         </div>
       ))}
       <button className={styles.addProjectButton} onClick={onAddProject}>
@@ -280,10 +268,42 @@ function Sidebar({ projects, selectedProject, onProjectSelect, onAddProject, onU
   );
 }
 
-function MainArea({ projectName, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, chatHistory, message, setMessage, onSendMessage }) {
+function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, chatHistory, message, setMessage, onSendMessage, onUpdateProject, onDeleteProject }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState(projectName);
+
+  const handleEditSave = () => {
+    onUpdateProject(projectId, editedName);
+    setIsEditing(false);
+  };
+
+  const handleDelete = () => {
+    if (window.confirm('Are you sure you want to delete this project?')) {
+      onDeleteProject(projectId);
+    }
+  };
+
   return (
     <div className={styles.mainContent}>
-      <h1>{projectName}</h1>
+      <div className={styles.projectHeader}>
+        {isEditing ? (
+          <>
+            <input
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              onBlur={handleEditSave}
+              autoFocus
+            />
+            <button onClick={handleEditSave}>Save</button>
+          </>
+        ) : (
+          <>
+            <h1>{projectName}</h1>
+            <button onClick={() => setIsEditing(true)}>Edit</button>
+            <button onClick={handleDelete}>Delete</button>
+          </>
+        )}
+      </div>
       <ContextBlocksArea 
         contextBlocks={contextBlocks}
         isLoading={isLoading}
