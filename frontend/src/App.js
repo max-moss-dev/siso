@@ -165,6 +165,7 @@ function AppContent() {
         onAddProject={handleAddProject}
       />
       <MainArea
+        projectName={projects.find(p => p.id === selectedProject)?.name || 'No Project Selected'}
         contextBlocks={contextBlocks}
         isLoading={isLoading}
         onAddBlock={() => setShowAddBlockModal(true)}
@@ -201,10 +202,10 @@ function Sidebar({ projects, selectedProject, onProjectSelect, onAddProject }) {
   );
 }
 
-function MainArea({ contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, chatHistory, message, setMessage, onSendMessage }) {
+function MainArea({ projectName, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, chatHistory, message, setMessage, onSendMessage }) {
   return (
     <div className={styles.mainContent}>
-      <h1>Structured GPT</h1>
+      <h1>{projectName}</h1>
       <ContextBlocksArea 
         contextBlocks={contextBlocks}
         isLoading={isLoading}
