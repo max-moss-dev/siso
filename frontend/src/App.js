@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Route, Routes, useParams, useNavigate } from '
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import styles from './App.module.css';
-import { FaCube, FaPaperPlane, FaUser, FaRobot, FaPlus } from 'react-icons/fa';
+import { FaCube, FaPaperPlane, FaUser, FaRobot, FaPlus, FaTimes } from 'react-icons/fa';
 
 const API_URL = 'http://localhost:8000';
 
@@ -15,6 +15,7 @@ function AppContent() {
   const [contextBlocks, setContextBlocks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddBlockModal, setShowAddBlockModal] = useState(false);
+  const [showAddProjectModal, setShowAddProjectModal] = useState(false);
   const { projectId } = useParams();
   const navigate = useNavigate();
 
@@ -124,12 +125,37 @@ function AppContent() {
     navigate(`/project/${projectId}`);
   };
 
-  const handleAddProject = async () => {
+  const handleAddProject = async (projectName) => {
     try {
-      const response = await axios.post(`${API_URL}/projects`);
+      const response = await axios.post(`${API_URL}/projects`, { name: projectName });
       setProjects([...projects, response.data]);
+      setShowAddProjectModal(false);
+      // Optionally, you can automatically select the new project:
+      handleProjectSelect(response.data.id);
     } catch (error) {
       console.error("Error adding new project:", error);
+    }
+  };
+
+  const handleUpdateProject = async (projectId, newName) => {
+    try {
+      const response = await axios.put(`${API_URL}/projects/${projectId}`, { name: newName });
+      setProjects(projects.map(p => p.id === projectId ? response.data : p));
+    } catch (error) {
+      console.error("Error updating project:", error);
+    }
+  };
+
+  const handleDeleteProject = async (projectId) => {
+    try {
+      await axios.delete(`${API_URL}/projects/${projectId}`);
+      setProjects(projects.filter(p => p.id !== projectId));
+      if (selectedProject === projectId) {
+        setSelectedProject(null);
+        navigate('/');
+      }
+    } catch (error) {
+      console.error("Error deleting project:", error);
     }
   };
 
@@ -156,13 +182,51 @@ function AppContent() {
     );
   };
 
+  const AddProjectModal = ({ onAddProject, onClose }) => {
+    const [projectName, setProjectName] = useState('');
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (projectName.trim()) {
+        onAddProject(projectName.trim());
+        setProjectName('');
+      }
+    };
+
+    return (
+      <div className={styles.modal}>
+        <div className={styles.modalContent}>
+          <h2>Add New Project</h2>
+          <form onSubmit={handleSubmit}>
+            <input
+              type="text"
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              placeholder="Enter project name"
+              className={styles.input}
+            />
+            <div className={styles.modalButtons}>
+              <button type="submit">Add</button>
+              <button type="button" onClick={onClose}>Cancel</button>
+            </div>
+          </form>
+          <button className={styles.closeButton} onClick={onClose}>
+            <FaTimes />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={styles.app}>
       <Sidebar 
         projects={projects} 
         selectedProject={selectedProject}
         onProjectSelect={handleProjectSelect}
-        onAddProject={handleAddProject}
+        onAddProject={() => setShowAddProjectModal(true)}
+        onUpdateProject={handleUpdateProject}
+        onDeleteProject={handleDeleteProject}
       />
       <MainArea
         projectName={projects.find(p => p.id === selectedProject)?.name || 'No Project Selected'}
@@ -178,21 +242,35 @@ function AppContent() {
         onSendMessage={handleSend}
       />
       {showAddBlockModal && <AddBlockModal onAddBlock={handleAddBlock} onClose={() => setShowAddBlockModal(false)} />}
+      {showAddProjectModal && <AddProjectModal onAddProject={handleAddProject} onClose={() => setShowAddProjectModal(false)} />}
     </div>
   );
 }
 
-function Sidebar({ projects, selectedProject, onProjectSelect, onAddProject }) {
+function Sidebar({ projects, selectedProject, onProjectSelect, onAddProject, onUpdateProject, onDeleteProject }) {
+  const [editingProject, setEditingProject] = useState(null);
+
   return (
     <div className={styles.sidebar}>
       <h2>Projects</h2>
       {projects.map(project => (
-        <div 
-          key={project.id} 
-          className={`${styles.projectItem} ${project.id === selectedProject ? styles.selected : ''}`}
-          onClick={() => onProjectSelect(project.id)}
-        >
-          <FaCube /> {project.name || `Project ${project.id}`}
+        <div key={project.id} className={`${styles.projectItem} ${project.id === selectedProject ? styles.selected : ''}`}>
+          {editingProject === project.id ? (
+            <input
+              value={project.name}
+              onChange={(e) => onUpdateProject(project.id, e.target.value)}
+              onBlur={() => setEditingProject(null)}
+              autoFocus
+            />
+          ) : (
+            <>
+              <span onClick={() => onProjectSelect(project.id)}>
+                <FaCube /> {project.name}
+              </span>
+              <button onClick={() => setEditingProject(project.id)}>Edit</button>
+              <button onClick={() => onDeleteProject(project.id)}>Delete</button>
+            </>
+          )}
         </div>
       ))}
       <button className={styles.addProjectButton} onClick={onAddProject}>

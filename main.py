@@ -9,6 +9,7 @@ import logging
 from sqlalchemy import create_engine, Column, String, JSON, ForeignKey, inspect
 from sqlalchemy.orm import sessionmaker, Session, relationship, declarative_base
 from uuid import uuid4
+from sqlalchemy.exc import SQLAlchemyError
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -31,8 +32,8 @@ app.add_middleware(
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Database setup
-SQLALCHEMY_DATABASE_URL = "sqlite:///./context_blocks.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+SQLALCHEMY_DATABASE_URL = "sqlite:///./persistent_db.sqlite"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -56,10 +57,13 @@ class ContextBlockModel(Base):
 ProjectModel.context_blocks = relationship("ContextBlockModel", back_populates="project")
 
 def recreate_database():
-    inspector = inspect(engine)
-    if 'context_blocks' in inspector.get_table_names():
-        ContextBlockModel.__table__.drop(engine)
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        create_default_project(db)
+    finally:
+        db.close()
 
 # Dependency
 def get_db():
@@ -80,6 +84,12 @@ class ChatRequest(BaseModel):
 
 class GenerateContentRequest(BaseModel):
     block_id: str
+
+class ProjectCreate(BaseModel):
+    name: str
+
+class ProjectUpdate(BaseModel):
+    name: str
 
 @app.post("/projects/{project_id}/context_blocks")
 async def add_context_block(project_id: str, block: ContextBlock, db: Session = Depends(get_db)):
@@ -168,8 +178,8 @@ async def generate_content(project_id: str, request: GenerateContentRequest, db:
     return {"content": generated_content}
 
 @app.post("/projects")
-async def create_project(db: Session = Depends(get_db)):
-    new_project = ProjectModel(id=str(uuid4()), name=f"Project {uuid4().hex[:8]}")
+async def create_project(project: ProjectCreate, db: Session = Depends(get_db)):
+    new_project = ProjectModel(id=str(uuid4()), name=project.name)
     db.add(new_project)
     db.commit()
     db.refresh(new_project)
@@ -245,19 +255,41 @@ async def generate_content(project_id: str, request: GenerateContentRequest, db:
     
     return {"content": generated_content}
 
-@app.put("/projects/{project_id}/context_blocks/{block_id}")
-async def update_context_block(project_id: str, block_id: str, block: ContextBlock, db: Session = Depends(get_db)):
-    db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == block_id, ContextBlockModel.project_id == project_id).first()
-    if db_block is None:
-        raise HTTPException(status_code=404, detail="Context block not found")
-    
-    db_block.title = block.title
-    db_block.content = block.content
-    db_block.type = block.type
-    
+@app.put("/projects/{project_id}")
+async def update_project(project_id: str, project: ProjectUpdate, db: Session = Depends(get_db)):
+    db_project = db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
+    if db_project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    db_project.name = project.name
     db.commit()
-    db.refresh(db_block)
-    return db_block
+    db.refresh(db_project)
+    return db_project
+
+@app.delete("/projects/{project_id}")
+async def delete_project(project_id: str, db: Session = Depends(get_db)):
+    db_project = db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
+    if db_project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    db.delete(db_project)
+    db.commit()
+    return {"message": "Project deleted successfully"}
+
+def create_default_project(db: Session):
+    default_project = ProjectModel(id=str(uuid4()), name="Default Project")
+    db.add(default_project)
+    db.commit()
+    db.refresh(default_project)
+    return default_project
+
+@app.on_event("startup")
+async def startup_event():
+    db = SessionLocal()
+    try:
+        projects = db.query(ProjectModel).all()
+        if not projects:
+            create_default_project(db)
+    finally:
+        db.close()
 
 if __name__ == "__main__":
     recreate_database()
