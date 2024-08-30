@@ -1,4 +1,1 @@
-- Edit project name
 - DB is cleared when server stopped
-- Remove project
-- Add default project

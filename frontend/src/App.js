@@ -272,6 +272,10 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(projectName);
 
+  useEffect(() => {
+    setEditedName(projectName);
+  }, [projectName]);
+
   const handleEditSave = () => {
     onUpdateProject(projectId, editedName);
     setIsEditing(false);
@@ -338,9 +342,11 @@ function ContextBlocksArea({ contextBlocks, isLoading, onAddBlock, onUpdateBlock
           onGenerateContent={onGenerateContent}
         />
       ))}
-      <button onClick={onAddBlock} className={styles.addBlockButton}>
-        <FaPlus /> Add Block
-      </button>
+      <div className={styles.addBlockContainer}>
+        <button onClick={onAddBlock} className={styles.addBlockButton}>
+          <FaPlus /> Add Block
+        </button>
+      </div>
     </div>
   );
 }
