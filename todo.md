@@ -2,4 +2,7 @@
 -- No chat 
 -- Project templates
 
-- Clean up files - make partials
+- Fix blocks interaction
+-- Type cursor jump
+-- Generate content
+-- Fix content
