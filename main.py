@@ -303,13 +303,8 @@ async def fix_content(project_id: str, request: dict, db: Session = Depends(get_
     # Call your AI model to fix the content
     fixed_content = await call_ai_model_to_fix(content)
     
-    # Update the block in the database
-    db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == block_id, ContextBlockModel.project_id == project_id).first()
-    if db_block is None:
-        raise HTTPException(status_code=404, detail="Context block not found")
-    db_block.content = fixed_content
-    db.commit()
-    
+    # We're not updating the database here anymore
+    # Instead, we're just returning the fixed content
     return {"fixed_content": fixed_content}
 
 async def call_ai_model_to_fix(content: str):

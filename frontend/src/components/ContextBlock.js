@@ -1,13 +1,15 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { FaWrench, FaCheck, FaTimes, FaExchangeAlt, FaTrash } from 'react-icons/fa';
 import styles from '../App.module.css';
-import { FaWrench } from 'react-icons/fa';
 
 function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixContent }) {
   const textareaRef = useRef(null);
   const [localContent, setLocalContent] = useState(block.content);
+  const [fixedContent, setFixedContent] = useState(null);
   const [isFixing, setIsFixing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
 
   const handleUpdate = useCallback((field, value) => {
     onUpdate(block.id, { ...block, [field]: value });
@@ -35,26 +37,40 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (localContent !== block.content) {
+      if (localContent !== block.content && !showComparison) {
         handleUpdate('content', localContent);
       }
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [localContent, block.content, handleUpdate]);
+  }, [localContent, block.content, handleUpdate, showComparison]);
 
   const handleFix = async () => {
     setIsFixing(true);
     try {
-      const fixedContent = await onFixContent(block.id, localContent);
-      setLocalContent(fixedContent);
-      handleUpdate('content', fixedContent);
+      const newFixedContent = await onFixContent(block.id, localContent);
+      setFixedContent(newFixedContent);
+      setShowComparison(true);
     } catch (error) {
       console.error("Error fixing content:", error);
       // You might want to show an error message to the user here
     } finally {
       setIsFixing(false);
     }
+  };
+
+  const handleAccept = () => {
+    handleUpdate('content', fixedContent);
+    setLocalContent(fixedContent);
+    setFixedContent(null);
+    setShowComparison(false);
+  };
+
+  const handleReject = () => {
+    setFixedContent(null);
+    setShowComparison(false);
+    // Ensure local content is set back to the original content
+    setLocalContent(block.content);
   };
 
   return (
@@ -64,7 +80,18 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
         onChange={(e) => handleUpdate('title', e.target.value)}
         placeholder="Block title"
       />
-      {block.type === 'text' ? (
+      {block.type === 'text' && showComparison ? (
+        <div className={styles.comparisonView}>
+          <div className={styles.comparisonColumn}>
+            <h4>Original</h4>
+            <ReactMarkdown>{localContent}</ReactMarkdown>
+          </div>
+          <div className={styles.comparisonColumn}>
+            <h4>Fixed</h4>
+            <ReactMarkdown>{fixedContent}</ReactMarkdown>
+          </div>
+        </div>
+      ) : block.type === 'text' ? (
         isEditing ? (
           <textarea
             ref={textareaRef}
@@ -101,27 +128,42 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
         </ul>
       )}
       <div className={styles.blockButtons}>
-        <button onClick={() => onDelete(block.id)} className={`${styles.button} ${styles.dangerButton}`}>Delete</button>
-        <button 
-          onClick={handleFix} 
-          className={`${styles.button} ${styles.secondaryButton}`}
-          disabled={isFixing}
-        >
-          <FaWrench /> {isFixing ? 'Fixing...' : 'Fix'}
-        </button>
-        <button 
-          onClick={() => onGenerateContent(block.id)} 
-          className={`${styles.button} ${styles.secondaryButton}`}
-        >
-          {block.content ? 'Regenerate' : 'Generate'}
-        </button>
-        {block.type === 'text' && (
-          <button 
-            onClick={() => setIsEditing(!isEditing)} 
-            className={`${styles.button} ${styles.secondaryButton}`}
-          >
-            {isEditing ? 'View' : 'Edit'}
-          </button>
+        {showComparison ? (
+          <>
+            <button onClick={handleAccept} className={`${styles.button} ${styles.primaryButton}`}>
+              <FaCheck /> Accept
+            </button>
+            <button onClick={handleReject} className={`${styles.button} ${styles.secondaryButton}`}>
+              <FaTimes /> Reject
+            </button>
+          </>
+        ) : (
+          <>
+            <button onClick={() => onDelete(block.id)} className={`${styles.button} ${styles.dangerButton}`}>
+              <FaTrash /> Delete
+            </button>
+            <button 
+              onClick={handleFix} 
+              className={`${styles.button} ${styles.secondaryButton}`}
+              disabled={isFixing}
+            >
+              <FaWrench /> {isFixing ? 'Fixing...' : 'Fix'}
+            </button>
+            <button 
+              onClick={() => onGenerateContent(block.id)} 
+              className={`${styles.button} ${styles.secondaryButton}`}
+            >
+              {block.content ? 'Regenerate' : 'Generate'}
+            </button>
+            {block.type === 'text' && (
+              <button 
+                onClick={() => setIsEditing(!isEditing)} 
+                className={`${styles.button} ${styles.secondaryButton}`}
+              >
+                <FaExchangeAlt /> {isEditing ? 'View' : 'Edit'}
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>
