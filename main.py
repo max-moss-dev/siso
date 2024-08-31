@@ -240,12 +240,39 @@ async def generate_content(project_id: str, request: GenerateContentRequest, db:
     if db_block is None:
         raise HTTPException(status_code=404, detail="Context block not found")
 
-    prompt = f"Generate content for a context block with the title '{db_block.title}'. The content should be in {db_block.type} format."
+    # Fetch all context blocks for the project
+    all_blocks = db.query(ContextBlockModel).filter(ContextBlockModel.project_id == project_id).order_by(ContextBlockModel.order).all()
     
+    # Fetch recent chat messages (e.g., last 10 messages)
+    recent_messages = db.query(ChatMessageModel).filter(ChatMessageModel.project_id == project_id).order_by(ChatMessageModel.timestamp.desc()).limit(10).all()
+    recent_messages.reverse()  # Reverse to get chronological order
+
+    # Prepare context information
+    context_info = "\n\n".join([
+        f"Context Block '{block.title}':\n{block.content}"
+        for block in all_blocks if block.id != db_block.id
+    ])
+
+    chat_context = "\n".join([
+        f"{msg.role.capitalize()}: {msg.content}"
+        for msg in recent_messages
+    ])
+
+    prompt = f"""
+    Project Context:
+    {context_info}
+
+    Recent Chat History:
+    {chat_context}
+
+    Now, generate content for a context block with the title '{db_block.title}'. The content should be in {db_block.type} format.
+    Make sure the generated content is coherent with the existing context and recent conversations.
+    """
+
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant that generates content for context blocks."},
+            {"role": "system", "content": "You are a helpful assistant that generates content for context blocks. Use the provided context to create relevant and coherent content."},
             {"role": "user", "content": prompt}
         ]
     )

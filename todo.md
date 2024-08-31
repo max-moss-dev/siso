@@ -1,7 +1,5 @@
 - Chat component
--- Save history
--- Unique chat per project
--- Improve Chat UI
+-- Can we make the AI to interact with Context blocks from chat
 
 - No projects screen
 -- No chat 

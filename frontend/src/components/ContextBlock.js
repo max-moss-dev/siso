@@ -8,10 +8,10 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
   const textareaRef = useRef(null);
   const [localContent, setLocalContent] = useState(block.content);
   const [isFixing, setIsFixing] = useState(false);
-  const [isImproving, setIsImproving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true); // Set to true by default
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [pendingContent, setPendingContent] = useState(null);
 
@@ -47,36 +47,45 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
         setShowComparison(true);
       } else {
         console.error("Invalid fixed content received:", newFixedContent);
-        // Optionally, show an error message to the user
       }
     } catch (error) {
       console.error("Error fixing content:", error);
-      // You might want to show an error message to the user here
     } finally {
       setIsFixing(false);
     }
   };
 
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    try {
+      const newGeneratedContent = await onGenerateContent(block.id, '');
+      if (newGeneratedContent && typeof newGeneratedContent === 'string') {
+        handleUpdate('content', newGeneratedContent);
+        setLocalContent(newGeneratedContent);
+      } else {
+        console.error("Invalid generated content received:", newGeneratedContent);
+      }
+    } catch (error) {
+      console.error("Error generating content:", error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleImprove = async () => {
-    setIsImproving(true);
+    setIsGenerating(true);
     try {
       const newImprovedContent = await onGenerateContent(block.id, localContent);
-      console.log("Received improved content:", newImprovedContent);
-      
-      if (newImprovedContent !== undefined) {
-        if (typeof newImprovedContent === 'string') {
-          setPendingContent(newImprovedContent);
-          setShowComparison(true);
-        } else {
-          console.error("Invalid improved content type:", typeof newImprovedContent);
-        }
+      if (newImprovedContent && typeof newImprovedContent === 'string') {
+        setPendingContent(newImprovedContent);
+        setShowComparison(true);
       } else {
-        console.error("Improved content is undefined");
+        console.error("Invalid improved content received:", newImprovedContent);
       }
     } catch (error) {
       console.error("Error improving content:", error);
     } finally {
-      setIsImproving(false);
+      setIsGenerating(false);
     }
   };
 
@@ -220,20 +229,32 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
               <button onClick={() => onDelete(block.id)} className={`${styles.button} ${styles.dangerButton}`}>
                 <FaTrash /> Delete
               </button>
-              <button 
-                onClick={handleFix} 
-                className={`${styles.button} ${styles.secondaryButton}`}
-                disabled={isFixing}
-              >
-                <FaWrench /> {isFixing ? 'Fixing...' : 'Fix'}
-              </button>
-              <button 
-                onClick={handleImprove} 
-                className={`${styles.button} ${styles.secondaryButton}`}
-                disabled={isImproving}
-              >
-                <FaMagic /> {isImproving ? 'Improving...' : 'Improve'}
-              </button>
+              {localContent ? (
+                <>
+                  <button 
+                    onClick={handleFix} 
+                    className={`${styles.button} ${styles.secondaryButton}`}
+                    disabled={isFixing}
+                  >
+                    <FaWrench /> {isFixing ? 'Fixing...' : 'Fix'}
+                  </button>
+                  <button 
+                    onClick={handleImprove} 
+                    className={`${styles.button} ${styles.secondaryButton}`}
+                    disabled={isGenerating}
+                  >
+                    <FaMagic /> {isGenerating ? 'Improving...' : 'Improve'}
+                  </button>
+                </>
+              ) : (
+                <button 
+                  onClick={handleGenerate} 
+                  className={`${styles.button} ${styles.primaryButton}`}
+                  disabled={isGenerating}
+                >
+                  <FaMagic /> {isGenerating ? 'Generating...' : 'Generate'}
+                </button>
+              )}
               {block.type === 'text' && (
                 <button 
                   onClick={() => setIsEditing(!isEditing)} 
