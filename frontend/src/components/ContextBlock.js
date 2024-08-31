@@ -1,10 +1,43 @@
-import React from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import styles from '../App.module.css';
 
 function ContextBlock({ block, onUpdate, onDelete, onGenerateContent }) {
-  const handleUpdate = (field, value) => {
+  const textareaRef = useRef(null);
+  const [localContent, setLocalContent] = useState(block.content);
+
+  const handleUpdate = useCallback((field, value) => {
     onUpdate(block.id, { ...block, [field]: value });
+  }, [block, onUpdate]);  // Include 'block' in the dependency array
+
+  useEffect(() => {
+    setLocalContent(block.content);
+  }, [block.content]);
+
+  const handleTextareaChange = (e) => {
+    const textarea = e.target;
+    const value = textarea.value;
+    const selectionStart = textarea.selectionStart;
+    const selectionEnd = textarea.selectionEnd;
+
+    setLocalContent(value);
+
+    requestAnimationFrame(() => {
+      if (textareaRef.current) {
+        textareaRef.current.selectionStart = selectionStart;
+        textareaRef.current.selectionEnd = selectionEnd;
+      }
+    });
   };
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (localContent !== block.content) {
+        handleUpdate('content', localContent);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [localContent, block.content, handleUpdate]);
 
   return (
     <div className={styles.contextBlock}>
@@ -15,8 +48,9 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent }) {
       />
       {block.type === 'text' ? (
         <textarea
-          value={block.content}
-          onChange={(e) => handleUpdate('content', e.target.value)}
+          ref={textareaRef}
+          value={localContent}
+          onChange={handleTextareaChange}
           placeholder="Block content"
         />
       ) : (
