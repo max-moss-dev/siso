@@ -5,10 +5,16 @@
   --text-color: #dcddde;
   --text-secondary: #8e9297;
   --border-color: #40444b;
-  --accent-color: #7289da;
-  --accent-color-hover: #677bc4;
-  --button-color: #43b581;
-  --button-color-hover: #3ca374;
+  --accent-color: #696868;
+  --accent-color-hover: #747474;
+  --primary-button-color: #43b581;
+  --primary-button-hover: #3ca374;
+  --secondary-button-color: #4f545c;
+  --secondary-button-hover: #5d6269;
+  --danger-button-color: #f04747;
+  --danger-button-hover: #d84040;
+  --success-button-color: #43b581;
+  --success-button-hover: #3ca374;
   
   --font-size-small: 14px;
   --font-size-normal: 16px;
@@ -83,17 +89,6 @@ body {
 
 .projectHeader button {
   margin-left: var(--padding-medium);
-  padding: var(--padding-small) var(--padding-medium);
-  background-color: var(--button-color);
-  color: white;
-  border: none;
-  border-radius: var(--border-radius-small);
-  cursor: pointer;
-  transition: all var(--transition-speed);
-}
-
-.projectHeader button:hover {
-  background-color: var(--button-color-hover);
 }
 
 .sidebar h2 {
@@ -123,18 +118,14 @@ body {
 
 .addProjectButton {
   width: 100%;
-  padding: var(--padding-medium);
-  background-color: var(--button-color);
-  color: white;
-  border: none;
-  border-radius: var(--border-radius-medium);
-  cursor: pointer;
-  transition: all var(--transition-speed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-top: var(--padding-large);
 }
 
 .addProjectButton:hover {
-  background-color: var(--button-color-hover);
+  background-color: var(--secondary-button-hover);
 }
 
 .contextBlocks {
@@ -153,13 +144,25 @@ body {
   box-shadow: var(--box-shadow);
   transition: all var(--transition-speed);
   border: 1px solid var(--border-color);
+  margin-bottom: var(--padding-medium);
 }
 
 .contextBlock:hover {
   border-color: var(--accent-color);
 }
 
-.contextBlock input,
+.contextBlock input {
+  width: 100%;
+  padding: var(--padding-small);
+  margin-bottom: var(--padding-small);
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  background-color: transparent;
+  color: var(--text-color);
+  font-size: var(--font-size-large);
+  font-weight: bold;
+}
+
 .contextBlock textarea {
   width: 100%;
   padding: var(--padding-small);
@@ -168,6 +171,8 @@ body {
   border-radius: var(--border-radius-small);
   background-color: var(--background-color);
   color: var(--text-color);
+  resize: vertical;
+  min-height: 100px;
 }
 
 .blockButtons {
@@ -179,16 +184,29 @@ body {
 
 .blockButtons button {
   padding: var(--padding-small) var(--padding-medium);
-  background-color: var(--accent-color);
-  color: white;
   border: none;
   border-radius: var(--border-radius-small);
   cursor: pointer;
   transition: all var(--transition-speed);
+  font-weight: bold;
 }
 
-.blockButtons button:hover {
-  background-color: var(--accent-color-hover);
+.blockButtons button:first-of-type {
+  background-color: var(--danger-button-color);
+  color: white;
+}
+
+.blockButtons button:first-of-type:hover {
+  background-color: var(--danger-button-hover);
+}
+
+.blockButtons button:last-of-type {
+  background-color: var(--secondary-button-color);
+  color: var(--text-color);
+}
+
+.blockButtons button:last-of-type:hover {
+  background-color: var(--secondary-button-hover);
 }
 
 .chatContainer {
@@ -200,6 +218,7 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
+  border: 1px solid var(--border-color);
 }
 
 .chatHistory {
@@ -207,6 +226,8 @@ body {
   overflow-y: auto;
   margin-bottom: var(--padding-medium);
   padding-right: var(--padding-small);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: var(--padding-medium);
 }
 
 .chatHistory::-webkit-scrollbar {
@@ -228,6 +249,7 @@ body {
   border-radius: var(--border-radius-medium);
   max-width: 80%;
   border: 1px solid var(--border-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .userMessage {
@@ -245,7 +267,7 @@ body {
 
 .inputSection {
   display: flex;
-  background-color: var(--surface-color);
+  background-color: var(--background-color);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-medium);
   overflow: hidden;
@@ -257,13 +279,13 @@ body {
   padding: var(--padding-medium);
   border: none;
   font-size: var(--font-size-normal);
-  background-color: var(--surface-color);
+  background-color: transparent;
   color: var(--text-color);
 }
 
 .sendButton {
   padding: var(--padding-medium);
-  background-color: var(--button-color);
+  background-color: var(--primary-button-color);
   color: white;
   border: none;
   cursor: pointer;
@@ -271,7 +293,7 @@ body {
 }
 
 .sendButton:hover {
-  background-color: var(--button-color-hover);
+  background-color: var(--primary-button-hover);
 }
 
 .modal {
@@ -324,16 +346,29 @@ body {
 
 .modalButtons button {
   padding: var(--padding-small) var(--padding-medium);
-  background-color: var(--button-color);
-  color: white;
   border: none;
   border-radius: var(--border-radius-small);
   cursor: pointer;
   transition: all var(--transition-speed);
+  font-weight: bold;
 }
 
-.modalButtons button:hover {
-  background-color: var(--button-color-hover);
+.modalButtons button:first-of-type {
+  background-color: var(--primary-button-color);
+  color: white;
+}
+
+.modalButtons button:first-of-type:hover {
+  background-color: var(--primary-button-hover);
+}
+
+.modalButtons button:last-of-type {
+  background-color: var(--secondary-button-color);
+  color: var(--text-color);
+}
+
+.modalButtons button:last-of-type:hover {
+  background-color: var(--secondary-button-hover);
 }
 
 .closeButton {
@@ -355,15 +390,64 @@ body {
 .addBlockButton {
   align-self: flex-start;
   padding: var(--padding-small) var(--padding-medium);
-  background-color: var(--button-color);
+  background-color: var(--secondary-button-color);
   color: white;
   border: none;
   border-radius: var(--border-radius-small);
   cursor: pointer;
   transition: all var(--transition-speed);
   margin-bottom: var(--padding-medium);
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: var(--padding-small);
 }
 
 .addBlockButton:hover {
-  background-color: var(--button-color-hover);
+  background-color: var(--primary-button-hover);
+}
+
+.button {
+  padding: var(--padding-small) var(--padding-medium);
+  border: none;
+  border-radius: var(--border-radius-small);
+  cursor: pointer;
+  transition: all var(--transition-speed);
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--padding-small);
+}
+
+.primaryButton {
+  background-color: var(--primary-button-color);
+  color: white;
+}
+
+.primaryButton:hover {
+  background-color: var(--primary-button-hover);
+}
+
+.secondaryButton {
+  background-color: var(--secondary-button-color);
+  color: var(--text-color);
+}
+
+.secondaryButton:hover {
+  background-color: var(--secondary-button-hover);
+}
+
+.dangerButton {
+  background-color: var(--danger-button-color);
+  color: white;
+}
+
+.dangerButton:hover {
+  background-color: var(--danger-button-hover);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

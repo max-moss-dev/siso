@@ -193,8 +193,8 @@ function AppContent() {
               <option value="list">List</option>
             </select>
             <div className={styles.modalButtons}>
-              <button type="submit">Add</button>
-              <button type="button" onClick={() => setShowAddBlockModal(false)}>Cancel</button>
+              <button type="submit" className={`${styles.button} ${styles.primaryButton}`}>Add</button>
+              <button type="button" onClick={() => setShowAddBlockModal(false)} className={`${styles.button} ${styles.secondaryButton}`}>Cancel</button>
             </div>
           </form>
         </div>
@@ -226,8 +226,8 @@ function AppContent() {
               className={styles.input}
             />
             <div className={styles.modalButtons}>
-              <button type="submit">Add</button>
-              <button type="button" onClick={onClose}>Cancel</button>
+              <button type="submit" className={`${styles.button} ${styles.primaryButton}`}>Add</button>
+              <button type="button" onClick={onClose} className={`${styles.button} ${styles.secondaryButton}`}>Cancel</button>
             </div>
           </form>
           <button className={styles.closeButton} onClick={onClose}>
@@ -281,7 +281,7 @@ function Sidebar({ projects, selectedProject, onProjectSelect, onAddProject }) {
           <FaCube /> {project.name}
         </div>
       ))}
-      <button className={styles.addProjectButton} onClick={onAddProject}>
+      <button className={`${styles.button} ${styles.secondaryButton} ${styles.addProjectButton}`} onClick={onAddProject}>
         <FaPlus /> Add Project
       </button>
     </div>
@@ -291,6 +291,7 @@ function Sidebar({ projects, selectedProject, onProjectSelect, onAddProject }) {
 function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, chatHistory, message, setMessage, onSendMessage, onUpdateProject, onDeleteProject }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(projectName);
+  const [canEdit, setCanEdit] = useState(true);
 
   useEffect(() => {
     setEditedName(projectName);
@@ -299,6 +300,8 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
   const handleEditSave = () => {
     onUpdateProject(projectId, editedName);
     setIsEditing(false);
+    setCanEdit(false);
+    setTimeout(() => setCanEdit(true), 300); // Re-enable edit after 300ms
   };
 
   const handleDelete = () => {
@@ -318,13 +321,19 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
               onBlur={handleEditSave}
               autoFocus
             />
-            <button onClick={handleEditSave}>Save</button>
+            <button onClick={handleEditSave} className={`${styles.button} ${styles.primaryButton}`}>Save</button>
           </>
         ) : (
           <>
             <h1>{projectName}</h1>
-            <button onClick={() => setIsEditing(true)}>Edit</button>
-            <button onClick={handleDelete}>Delete</button>
+            <button 
+              onClick={() => canEdit && setIsEditing(true)} 
+              className={`${styles.button} ${styles.secondaryButton}`}
+              disabled={!canEdit}
+            >
+              Edit
+            </button>
+            <button onClick={handleDelete} className={`${styles.button} ${styles.dangerButton}`}>Delete</button>
           </>
         )}
       </div>
@@ -363,7 +372,7 @@ function ContextBlocksArea({ contextBlocks, isLoading, onAddBlock, onUpdateBlock
         />
       ))}
       <div className={styles.addBlockContainer}>
-        <button onClick={onAddBlock} className={styles.addBlockButton}>
+        <button onClick={onAddBlock} className={`${styles.button} ${styles.primaryButton} ${styles.addBlockButton}`}>
           <FaPlus /> Add Block
         </button>
       </div>
@@ -409,8 +418,8 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent }) {
         </ul>
       )}
       <div className={styles.blockButtons}>
-        <button onClick={() => onDelete(block.id)}>Delete</button>
-        <button onClick={() => onGenerateContent(block.id)}>
+        <button onClick={() => onDelete(block.id)} className={`${styles.button} ${styles.dangerButton}`}>Delete</button>
+        <button onClick={() => onGenerateContent(block.id)} className={`${styles.button} ${styles.secondaryButton}`}>
           {block.content ? 'Regenerate' : 'Generate'}
         </button>
       </div>
@@ -437,7 +446,7 @@ function ChatArea({ chatHistory, message, setMessage, onSendMessage }) {
           onKeyPress={(e) => e.key === 'Enter' && onSendMessage()}
           placeholder="Type your message..."
         />
-        <button className={styles.sendButton} onClick={onSendMessage}>
+        <button className={`${styles.button} ${styles.primaryButton} ${styles.sendButton}`} onClick={onSendMessage}>
           <FaPaperPlane />
         </button>
       </div>
