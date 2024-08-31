@@ -98,9 +98,9 @@ body {
 }
 
 .contextBlocksColumn {
-  width: 45%; /* Increased from 40% */
-  min-width: 350px; /* Increased from 300px */
-  max-width: 600px; /* Increased from 500px */
+  width: 45%;
+  min-width: 350px;
+  max-width: 600px;
   border-left: 1px solid var(--border-color);
   overflow-y: auto;
   padding: 0 var(--padding-medium);
@@ -302,7 +302,7 @@ body {
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-medium);
   overflow: hidden;
-  margin-top: var(--padding-medium);
+  margin: var(--padding-medium) 0;
 }
 
 .input {
@@ -463,7 +463,6 @@ body {
   cursor: not-allowed;
 }
 
-/* Add these new styles */
 .markdownContent {
   background-color: var(--background-color);
   border: 1px solid var(--border-color);
@@ -487,19 +486,6 @@ body {
   background-color: var(--background-color);
   color: var(--text-color);
   resize: vertical;
-}
-
-/* Update this existing style */
-.contextBlock textarea {
-  width: 100%;
-  padding: var(--padding-small);
-  margin-bottom: var(--padding-small);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-small);
-  background-color: var(--background-color);
-  color: var(--text-color);
-  resize: vertical;
-  min-height: 100px;
 }
 
 /* Add these new styles */
@@ -601,17 +587,7 @@ body {
   border-radius: var(--border-radius-small) var(--border-radius-small) 0 0;
 }
 
-.contextBlock {
-  background-color: var(--surface-color);
-  border-radius: 0 0 var(--border-radius-medium) var(--border-radius-medium);
-  padding: var(--padding-medium);
-  box-shadow: var(--box-shadow);
-  transition: all var(--transition-speed);
-  border: 1px solid var(--border-color);
-  margin-bottom: var(--padding-medium);
-}
 
-/* Add this new style */
 .noBlocksMessage {
   padding: var(--padding-medium);
   text-align: center;
