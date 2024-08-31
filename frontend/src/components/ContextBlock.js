@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { diffWords } from 'diff';
 import { FaWrench, FaCheck, FaTimes, FaExchangeAlt, FaTrash } from 'react-icons/fa';
 import styles from '../App.module.css';
 
@@ -20,19 +21,8 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
   }, [block.content]);
 
   const handleTextareaChange = (e) => {
-    const textarea = e.target;
-    const value = textarea.value;
-    const selectionStart = textarea.selectionStart;
-    const selectionEnd = textarea.selectionEnd;
-
+    const value = e.target.value;
     setLocalContent(value);
-
-    requestAnimationFrame(() => {
-      if (textareaRef.current) {
-        textareaRef.current.selectionStart = selectionStart;
-        textareaRef.current.selectionEnd = selectionEnd;
-      }
-    });
   };
 
   useEffect(() => {
@@ -69,8 +59,19 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
   const handleReject = () => {
     setFixedContent(null);
     setShowComparison(false);
-    // Ensure local content is set back to the original content
-    setLocalContent(block.content);
+  };
+
+  const renderDiff = (oldContent, newContent) => {
+    const diff = diffWords(oldContent, newContent);
+    return diff.map((part, index) => {
+      if (part.added) {
+        return <span key={index} className={styles.added}>{part.value}</span>;
+      }
+      if (part.removed) {
+        return <span key={index} className={styles.removed}>{part.value}</span>;
+      }
+      return <span key={index}>{part.value}</span>;
+    });
   };
 
   return (
@@ -82,14 +83,8 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
       />
       {block.type === 'text' && showComparison ? (
         <div className={styles.comparisonView}>
-          <div className={styles.comparisonColumn}>
-            <h4>Original</h4>
-            <ReactMarkdown>{localContent}</ReactMarkdown>
-          </div>
-          <div className={styles.comparisonColumn}>
-            <h4>Fixed</h4>
-            <ReactMarkdown>{fixedContent}</ReactMarkdown>
-          </div>
+          <h4>Suggested Changes</h4>
+          <pre className={styles.diffContent}>{renderDiff(localContent, fixedContent)}</pre>
         </div>
       ) : block.type === 'text' ? (
         isEditing ? (

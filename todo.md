@@ -5,4 +5,5 @@
 - Fix blocks interaction
 -- Generate content
 -- Edit markdown
---> Changes accept/reject
+
+- Fix dependencies

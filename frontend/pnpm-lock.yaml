@@ -20,6 +20,9 @@ importers:
       axios:
         specifier: ^1.6.2
         version: 1.7.4
+      diff:
+        specifier: 6.0.0-beta
+        version: 6.0.0-beta
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -2325,6 +2328,10 @@ packages:
   diff-sequences@29.6.3:
     resolution: {integrity: sha512-EjePK1srD3P08o2j4f0ExnylqRs5B9tJjcp9t1krH2qRi8CCdsYfwe9JgSLurFBWwq4uOlipzfk5fHNvwFKr8Q==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+
+  diff@6.0.0-beta:
+    resolution: {integrity: sha512-ZLFOZi58WgvIcAre+bXFmKPx3j9rspGc1nR0pkJLFlbzY1FXPDhJu4sfBSvt4LHTNfPN/yoGy/46GMGxUyXyTQ==}
+    engines: {node: '>=0.3.1'}
 
   dir-glob@3.0.1:
     resolution: {integrity: sha512-WkrWp9GR4KXfKGYzOLmTuGVi1UWFfws377n9cc55/tb6DuqyF6pcQ5AbiHEshaDpY9v6oaSr2XCDidGmMwdzIA==}
@@ -8592,6 +8599,8 @@ snapshots:
   diff-sequences@27.5.1: {}
 
   diff-sequences@29.6.3: {}
+
+  diff@6.0.0-beta: {}
 
   dir-glob@3.0.1:
     dependencies:

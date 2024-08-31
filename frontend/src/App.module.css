@@ -508,3 +508,28 @@ body {
 .successButton:hover {
   background-color: var(--success-button-hover);
 }
+
+.diffContent {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: monospace;
+  background-color: var(--background-color);
+  padding: var(--padding-medium);
+  border-radius: var(--border-radius-small);
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+.added {
+  background-color: #70eb93;
+  color: #24292e;
+  text-decoration: none;
+  padding: 2px 0;
+}
+
+.removed {
+  background-color: #f0d6da;
+  color: #24292e;
+  text-decoration: line-through;
+  padding: 2px 0;
+}
