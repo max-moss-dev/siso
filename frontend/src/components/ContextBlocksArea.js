@@ -1,8 +1,9 @@
 import React from 'react';
 import styles from '../App.module.css';
 import ContextBlock from './ContextBlock';
+import { FaPlus } from 'react-icons/fa';
 
-function ContextBlocksArea({ contextBlocks, isLoading, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, onReorderBlocks }) {
+function ContextBlocksArea({ contextBlocks, isLoading, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, onReorderBlocks, onAddBlock }) {
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -45,6 +46,12 @@ function ContextBlocksArea({ contextBlocks, isLoading, onUpdateBlock, onDeleteBl
       ) : (
         <div className={styles.noBlocksMessage}>No context blocks available. Add a new block to get started.</div>
       )}
+      <button 
+        onClick={onAddBlock} 
+        className={`${styles.button} ${styles.secondaryButton} ${styles.addBlockButton}`}
+      >
+        <FaPlus /> Add context
+      </button>
     </div>
   );
 }

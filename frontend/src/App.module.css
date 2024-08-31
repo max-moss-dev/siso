@@ -108,6 +108,8 @@ body {
 
 .contextBlocksContainer {
   padding: var(--padding-medium) 0;
+  position: relative;
+  padding-bottom: 80px; /* Add space for the fixed button */
 }
 
 .projectHeader {
@@ -641,6 +643,30 @@ body {
   margin-right: var(--padding-small);
 }
 
-.moveButton:hover {
+.moveButton:hover:not(.disabled) {
   color: var(--text-color);
+}
+
+.moveButton.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.contextBlocksTitle {
+  font-size: var(--font-size-large);
+  margin-bottom: var(--padding-medium);
+  color: var(--text-color);
+}
+
+.addBlockButton {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
+  padding: 10px 20px;
+  border-radius: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }

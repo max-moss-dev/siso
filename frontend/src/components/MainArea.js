@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styles from '../App.module.css';
 import ContextBlocksArea from './ContextBlocksArea';
 import ChatArea from './ChatArea';
-import { FaPlus, FaEdit, FaTrash, FaBars } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaBars } from 'react-icons/fa';
 
 function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, chatHistory, message, setMessage, onSendMessage, onUpdateProject, onDeleteProject, toggleSidebar, isSidebarOpen, onReorderBlocks }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -65,13 +65,7 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
               >
                 <FaTrash /> Delete Project
               </button>
-              <button 
-                onClick={onAddBlock} 
-                className={`${styles.button} ${styles.primaryButton} ${styles.addBlockButton}`}
-                title="Add New Context Block"
-              >
-                <FaPlus /> Add Block
-              </button>
+              {/* Remove the Add Block button from here */}
             </div>
           </>
         )}
@@ -86,6 +80,7 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
           />
         </div>
         <div className={styles.contextBlocksColumn}>
+          <h2 className={styles.contextBlocksTitle}>Context Blocks</h2>
           <ContextBlocksArea 
             contextBlocks={contextBlocks}
             isLoading={isLoading}
@@ -94,6 +89,7 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
             onGenerateContent={onGenerateContent}
             onFixContent={onFixContent}
             onReorderBlocks={onReorderBlocks}
+            onAddBlock={onAddBlock}
           />
         </div>
       </div>

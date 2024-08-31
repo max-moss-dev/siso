@@ -112,16 +112,20 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
           <span>{block.title}</span>
         )}
         <div className={styles.blockActions}>
-          {!isFirst && (
-            <button onClick={(e) => { e.stopPropagation(); onMoveUp(block.id); }} className={styles.moveButton}>
-              <FaArrowUp />
-            </button>
-          )}
-          {!isLast && (
-            <button onClick={(e) => { e.stopPropagation(); onMoveDown(block.id); }} className={styles.moveButton}>
-              <FaArrowDown />
-            </button>
-          )}
+          <button 
+            onClick={(e) => { e.stopPropagation(); onMoveUp(block.id); }} 
+            className={`${styles.moveButton} ${isFirst ? styles.disabled : ''}`}
+            disabled={isFirst}
+          >
+            <FaArrowUp />
+          </button>
+          <button 
+            onClick={(e) => { e.stopPropagation(); onMoveDown(block.id); }} 
+            className={`${styles.moveButton} ${isLast ? styles.disabled : ''}`}
+            disabled={isLast}
+          >
+            <FaArrowDown />
+          </button>
           <FaChevronDown className={`${styles.collapseIcon} ${isCollapsed ? styles.collapsed : ''}`} />
         </div>
       </div>
