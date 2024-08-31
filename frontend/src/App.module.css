@@ -452,3 +452,42 @@ body {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Add these new styles */
+.markdownContent {
+  background-color: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  padding: var(--padding-medium);
+  min-height: 100px;
+  cursor: pointer;
+}
+
+.markdownContent:hover {
+  border-color: var(--accent-color);
+}
+
+.contentTextarea {
+  width: 100%;
+  min-height: 100px;
+  padding: var(--padding-small);
+  margin-bottom: var(--padding-small);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  background-color: var(--background-color);
+  color: var(--text-color);
+  resize: vertical;
+}
+
+/* Update this existing style */
+.contextBlock textarea {
+  width: 100%;
+  padding: var(--padding-small);
+  margin-bottom: var(--padding-small);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  background-color: var(--background-color);
+  color: var(--text-color);
+  resize: vertical;
+  min-height: 100px;
+}

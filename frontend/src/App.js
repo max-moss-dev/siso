@@ -161,6 +161,19 @@ function AppContent() {
     }
   };
 
+  const handleFixContent = async (blockId, content) => {
+    try {
+      const response = await axios.post(`${API_URL}/projects/${selectedProject}/fix_content`, {
+        block_id: blockId,
+        content: content
+      });
+      return response.data.fixed_content;
+    } catch (error) {
+      console.error("Error fixing content:", error);
+      throw error;
+    }
+  };
+
   return (
     <div className={styles.app}>
       <Sidebar 
@@ -178,6 +191,7 @@ function AppContent() {
         onUpdateBlock={handleUpdateBlock}
         onDeleteBlock={handleDeleteBlock}
         onGenerateContent={handleGenerateContent}
+        onFixContent={handleFixContent}  // Add this line
         chatHistory={chatHistory}
         message={message}
         setMessage={setMessage}

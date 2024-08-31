@@ -295,6 +295,33 @@ async def startup_event():
 def create_tables():
     Base.metadata.create_all(bind=engine)
 
+@app.post("/projects/{project_id}/fix_content")
+async def fix_content(project_id: str, request: dict, db: Session = Depends(get_db)):
+    block_id = request.get('block_id')
+    content = request.get('content')
+    
+    # Call your AI model to fix the content
+    fixed_content = await call_ai_model_to_fix(content)
+    
+    # Update the block in the database
+    db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == block_id, ContextBlockModel.project_id == project_id).first()
+    if db_block is None:
+        raise HTTPException(status_code=404, detail="Context block not found")
+    db_block.content = fixed_content
+    db.commit()
+    
+    return {"fixed_content": fixed_content}
+
+async def call_ai_model_to_fix(content: str):
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are an AI that fixes semantic issues and typos in text. Respond only with the corrected text, without any explanations or additional comments."},
+            {"role": "user", "content": f"Fix any semantic issues and typos in the following text:\n\n{content}"}
+        ]
+    )
+    return response.choices[0].message.content
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

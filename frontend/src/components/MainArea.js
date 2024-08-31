@@ -4,7 +4,7 @@ import ContextBlocksArea from './ContextBlocksArea';
 import ChatArea from './ChatArea';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 
-function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, chatHistory, message, setMessage, onSendMessage, onUpdateProject, onDeleteProject }) {
+function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, chatHistory, message, setMessage, onSendMessage, onUpdateProject, onDeleteProject }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(projectName);
   const [canEdit, setCanEdit] = useState(true);
@@ -77,6 +77,7 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
           onUpdateBlock={onUpdateBlock}
           onDeleteBlock={onDeleteBlock}
           onGenerateContent={onGenerateContent}
+          onFixContent={onFixContent}  // Add this line
         />
         <ChatArea 
           chatHistory={chatHistory}
