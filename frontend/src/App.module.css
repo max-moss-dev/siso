@@ -492,8 +492,6 @@ body {
 
 /* Add these new styles */
 .comparisonView {
-  display: flex;
-  gap: var(--padding-medium);
   margin-bottom: var(--padding-medium);
 }
 
@@ -560,7 +558,6 @@ body {
 
 .contextBlockContent {
   transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
-  max-height: 1000px; /* Adjust this value based on your needs */
   opacity: 1;
   overflow: hidden;
 }

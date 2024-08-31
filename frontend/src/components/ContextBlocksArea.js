@@ -50,7 +50,7 @@ function ContextBlocksArea({ contextBlocks, isLoading, onUpdateBlock, onDeleteBl
         onClick={onAddBlock} 
         className={`${styles.button} ${styles.secondaryButton} ${styles.addBlockButton}`}
       >
-        <FaPlus /> Add context
+        <FaPlus /> Add Context
       </button>
     </div>
   );

@@ -110,16 +110,13 @@ function AppContent() {
     }
   };
 
-  const handleGenerateContent = async (blockId) => {
+  const handleGenerateContent = async (blockId, currentContent) => {
     try {
-      const response = await axios.post(`${API_URL}/projects/${selectedProject}/generate_content`, { block_id: blockId });
-      const updatedBlock = contextBlocks.find(block => block.id === blockId);
-      if (updatedBlock) {
-        updatedBlock.content = response.data.content;
-        handleUpdateBlock(blockId, updatedBlock);
-      }
+      const response = await axios.post(`${API_URL}/projects/${selectedProject}/generate_content`, { block_id: blockId, content: currentContent });
+      return response.data.content; // This should return the new content as a string
     } catch (error) {
       console.error("Error generating content:", error);
+      throw error;
     }
   };
 

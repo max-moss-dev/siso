@@ -1,18 +1,20 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { diffWords } from 'diff';
-import { FaWrench, FaCheck, FaTimes, FaExchangeAlt, FaTrash, FaChevronDown, FaEdit, FaArrowUp, FaArrowDown } from 'react-icons/fa';
+import { FaWrench, FaCheck, FaTimes, FaExchangeAlt, FaTrash, FaChevronDown, FaEdit, FaArrowUp, FaArrowDown, FaMagic } from 'react-icons/fa';
 import styles from '../App.module.css';
 
 function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixContent, onMoveUp, onMoveDown, isFirst, isLast }) {
   const textareaRef = useRef(null);
   const [localContent, setLocalContent] = useState(block.content);
-  const [fixedContent, setFixedContent] = useState(null);
   const [isFixing, setIsFixing] = useState(false);
+  const [isImproving, setIsImproving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true); // Set to true by default
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [pendingContent, setPendingContent] = useState(null);
+  const [pendingAction, setPendingAction] = useState(null);
 
   const handleUpdate = useCallback((field, value) => {
     onUpdate(block.id, { ...block, [field]: value });
@@ -41,8 +43,14 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
     setIsFixing(true);
     try {
       const newFixedContent = await onFixContent(block.id, localContent);
-      setFixedContent(newFixedContent);
-      setShowComparison(true);
+      if (newFixedContent && typeof newFixedContent === 'string') {
+        setPendingContent(newFixedContent);
+        setPendingAction('fix');
+        setShowComparison(true);
+      } else {
+        console.error("Invalid fixed content received:", newFixedContent);
+        // Optionally, show an error message to the user
+      }
     } catch (error) {
       console.error("Error fixing content:", error);
       // You might want to show an error message to the user here
@@ -51,19 +59,50 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
     }
   };
 
+  const handleImprove = async () => {
+    setIsImproving(true);
+    try {
+      const newImprovedContent = await onGenerateContent(block.id, localContent);
+      console.log("Received improved content:", newImprovedContent);
+      
+      if (newImprovedContent !== undefined) {
+        if (typeof newImprovedContent === 'string') {
+          setPendingContent(newImprovedContent);
+          setPendingAction('improve');
+          setShowComparison(true);
+        } else {
+          console.error("Invalid improved content type:", typeof newImprovedContent);
+        }
+      } else {
+        console.error("Improved content is undefined");
+      }
+    } catch (error) {
+      console.error("Error improving content:", error);
+    } finally {
+      setIsImproving(false);
+    }
+  };
+
   const handleAccept = () => {
-    handleUpdate('content', fixedContent);
-    setLocalContent(fixedContent);
-    setFixedContent(null);
+    if (pendingContent) {
+      handleUpdate('content', pendingContent);
+      setLocalContent(pendingContent);
+    }
+    setPendingContent(null);
+    setPendingAction(null);
     setShowComparison(false);
   };
 
   const handleReject = () => {
-    setFixedContent(null);
+    setPendingContent(null);
+    setPendingAction(null);
     setShowComparison(false);
   };
 
   const renderDiff = (oldContent, newContent) => {
+    if (!oldContent || !newContent || typeof oldContent !== 'string' || typeof newContent !== 'string') {
+      return <span>Unable to display diff. Invalid content.</span>;
+    }
     const diff = diffWords(oldContent, newContent);
     return diff.map((part, index) => {
       if (part.added) {
@@ -133,7 +172,7 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
         {block.type === 'text' && showComparison ? (
           <div className={styles.comparisonView}>
             <h4>Suggested Changes</h4>
-            <pre className={styles.diffContent}>{renderDiff(localContent, fixedContent)}</pre>
+            <pre className={styles.diffContent}>{renderDiff(localContent, pendingContent)}</pre>
           </div>
         ) : block.type === 'text' ? (
           isEditing ? (
@@ -194,10 +233,11 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
                 <FaWrench /> {isFixing ? 'Fixing...' : 'Fix'}
               </button>
               <button 
-                onClick={() => onGenerateContent(block.id)} 
+                onClick={handleImprove} 
                 className={`${styles.button} ${styles.secondaryButton}`}
+                disabled={isImproving}
               >
-                {block.content ? 'Regenerate' : 'Generate'}
+                <FaMagic /> {isImproving ? 'Improving...' : 'Improve'}
               </button>
               {block.type === 'text' && (
                 <button 
