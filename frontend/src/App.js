@@ -6,7 +6,6 @@ import Sidebar from './components/Sidebar';
 import MainArea from './components/MainArea';
 import AddBlockModal from './components/AddBlockModal';
 import AddProjectModal from './components/AddProjectModal';
-import { FaBars } from 'react-icons/fa';
 
 const API_URL = 'http://localhost:8000';
 
@@ -180,6 +179,17 @@ function AppContent() {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  const handleReorderBlocks = async (reorderedBlocks) => {
+    setContextBlocks(reorderedBlocks);
+    try {
+      await axios.put(`${API_URL}/projects/${selectedProject}/reorder_blocks`, { blocks: reorderedBlocks.map(block => block.id) });
+    } catch (error) {
+      console.error("Error reordering blocks:", error);
+      // Optionally, revert the order if the API call fails
+      fetchContextBlocks();
+    }
+  };
+
   return (
     <div className={styles.app}>
       <Sidebar 
@@ -207,6 +217,7 @@ function AppContent() {
         onDeleteProject={handleDeleteProject}
         toggleSidebar={toggleSidebar}
         isSidebarOpen={isSidebarOpen}
+        onReorderBlocks={handleReorderBlocks}
       />
       {showAddBlockModal && <AddBlockModal onAddBlock={handleAddBlock} onClose={() => setShowAddBlockModal(false)} />}
       {showAddProjectModal && <AddProjectModal onAddProject={handleAddProject} onClose={() => setShowAddProjectModal(false)} />}

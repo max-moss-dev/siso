@@ -6,7 +6,7 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 import logging
-from sqlalchemy import create_engine, Column, String, JSON, ForeignKey, inspect
+from sqlalchemy import create_engine, Column, String, JSON, ForeignKey, inspect, Integer, func, text
 from sqlalchemy.orm import sessionmaker, Session, relationship, declarative_base
 from uuid import uuid4
 from sqlalchemy.exc import SQLAlchemyError
@@ -51,6 +51,7 @@ class ContextBlockModel(Base):
     title = Column(String, index=True)
     content = Column(JSON)
     type = Column(String)
+    order = Column(Integer)
 
     project = relationship("ProjectModel", back_populates="context_blocks")
 
@@ -91,14 +92,50 @@ class ProjectCreate(BaseModel):
 class ProjectUpdate(BaseModel):
     name: str
 
+class ReorderBlocksRequest(BaseModel):
+    blocks: List[str]
+
+def add_order_column_if_not_exists(engine):
+    inspector = inspect(engine)
+    if 'order' not in [column['name'] for column in inspector.get_columns('context_blocks')]:
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE context_blocks ADD COLUMN 'order' INTEGER"))
+            conn.commit()
+
+def initialize_block_order(db: Session):
+    projects = db.query(ProjectModel).all()
+    for project in projects:
+        blocks = db.query(ContextBlockModel).filter(ContextBlockModel.project_id == project.id).all()
+        for index, block in enumerate(blocks):
+            block.order = index
+    db.commit()
+
+@app.on_event("startup")
+async def startup_event():
+    create_tables()
+    add_order_column_if_not_exists(engine)
+    db = SessionLocal()
+    try:
+        projects = db.query(ProjectModel).all()
+        if not projects:
+            create_default_project(db)
+        initialize_block_order(db)
+    finally:
+        db.close()
+
+def create_tables():
+    Base.metadata.create_all(bind=engine)
+
 @app.post("/projects/{project_id}/context_blocks")
 async def add_context_block(project_id: str, block: ContextBlock, db: Session = Depends(get_db)):
+    max_order = db.query(func.max(ContextBlockModel.order)).filter(ContextBlockModel.project_id == project_id).scalar() or -1
     db_block = ContextBlockModel(
         id=str(uuid4()),
         project_id=project_id,
         title=block.title,
         content=block.content,
-        type=block.type
+        type=block.type,
+        order=max_order + 1
     )
     db.add(db_block)
     db.commit()
@@ -107,7 +144,7 @@ async def add_context_block(project_id: str, block: ContextBlock, db: Session = 
 
 @app.get("/projects/{project_id}/context_blocks")
 async def get_context_blocks(project_id: str, db: Session = Depends(get_db)):
-    blocks = db.query(ContextBlockModel).filter(ContextBlockModel.project_id == project_id).all()
+    blocks = db.query(ContextBlockModel).filter(ContextBlockModel.project_id == project_id).order_by(ContextBlockModel.order).all()
     return blocks
 
 @app.put("/projects/{project_id}/context_blocks/{block_id}")
@@ -281,20 +318,6 @@ def create_default_project(db: Session):
     db.refresh(default_project)
     return default_project
 
-@app.on_event("startup")
-async def startup_event():
-    create_tables()
-    db = SessionLocal()
-    try:
-        projects = db.query(ProjectModel).all()
-        if not projects:
-            create_default_project(db)
-    finally:
-        db.close()
-
-def create_tables():
-    Base.metadata.create_all(bind=engine)
-
 @app.post("/projects/{project_id}/fix_content")
 async def fix_content(project_id: str, request: dict, db: Session = Depends(get_db)):
     block_id = request.get('block_id')
@@ -316,6 +339,17 @@ async def call_ai_model_to_fix(content: str):
         ]
     )
     return response.choices[0].message.content
+
+@app.put("/projects/{project_id}/reorder_blocks")
+async def reorder_blocks(project_id: str, request: ReorderBlocksRequest, db: Session = Depends(get_db)):
+    blocks = request.blocks
+    for index, block_id in enumerate(blocks):
+        db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == block_id, ContextBlockModel.project_id == project_id).first()
+        if db_block is None:
+            raise HTTPException(status_code=404, detail=f"Context block with id {block_id} not found")
+        db_block.order = index
+    db.commit()
+    return {"message": "Blocks reordered successfully"}
 
 if __name__ == "__main__":
     import uvicorn

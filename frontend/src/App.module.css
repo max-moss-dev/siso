@@ -85,16 +85,29 @@ body {
 
 .contentContainer {
   display: flex;
-  flex-direction: column;
   flex-grow: 1;
   overflow: hidden;
 }
 
-.contextBlocksContainer {
-  flex-grow: 1;
+.chatColumn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--padding-medium);
   overflow-y: auto;
-  padding: 0 var(--padding-large);
-  margin-bottom: var(--padding-medium);
+}
+
+.contextBlocksColumn {
+  width: 45%; /* Increased from 40% */
+  min-width: 350px; /* Increased from 300px */
+  max-width: 600px; /* Increased from 500px */
+  border-left: 1px solid var(--border-color);
+  overflow-y: auto;
+  padding: 0 var(--padding-medium);
+}
+
+.contextBlocksContainer {
+  padding: var(--padding-medium) 0;
 }
 
 .projectHeader {
@@ -184,6 +197,7 @@ body {
   transition: all var(--transition-speed);
   border: 1px solid var(--border-color);
   margin-bottom: var(--padding-medium);
+  cursor: move; /* Indicates the block is draggable */
 }
 
 .contextBlock:hover {
@@ -235,20 +249,16 @@ body {
 }
 
 .chatContainer {
-  background-color: var(--surface-color);
-  border-radius: var(--border-radius-large) var(--border-radius-large) 0 0;
-  padding: var(--padding-large);
-  box-shadow: var(--box-shadow);
-  border: 1px solid var(--border-color);
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .chatHistory {
-  max-height: 300px;
+  flex-grow: 1;
   overflow-y: auto;
-  margin-bottom: var(--padding-medium);
   padding-right: var(--padding-small);
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: var(--padding-medium);
+  margin-bottom: var(--padding-medium);
 }
 
 .chatHistory::-webkit-scrollbar {
@@ -549,4 +559,112 @@ body {
 
 .toggleSidebarButton {
   margin-right: var(--padding-medium);
+}
+
+/* Add new styles for collapsible context blocks */
+.contextBlockHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: var(--padding-small) 0;
+}
+
+.contextBlockContent {
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+  max-height: 1000px; /* Adjust this value based on your needs */
+  opacity: 1;
+  overflow: hidden;
+}
+
+.contextBlockContent.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.collapseIcon {
+  transition: transform 0.3s ease-out;
+}
+
+.collapseIcon.collapsed {
+  transform: rotate(-90deg);
+}
+
+/* Add these new styles */
+.dragHandle {
+  cursor: move;
+  padding: 8px;
+  margin-bottom: 8px;
+  background-color: var(--accent-color);
+  color: var(--text-color);
+  text-align: center;
+  border-radius: var(--border-radius-small) var(--border-radius-small) 0 0;
+}
+
+.contextBlock {
+  background-color: var(--surface-color);
+  border-radius: 0 0 var(--border-radius-medium) var(--border-radius-medium);
+  padding: var(--padding-medium);
+  box-shadow: var(--box-shadow);
+  transition: all var(--transition-speed);
+  border: 1px solid var(--border-color);
+  margin-bottom: var(--padding-medium);
+}
+
+/* Add this new style */
+.noBlocksMessage {
+  padding: var(--padding-medium);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.contextBlockHeader {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: var(--padding-small) var(--padding-medium);
+  background-color: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.editTitleInput {
+  flex-grow: 1;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  padding: var(--padding-small);
+  margin-right: var(--padding-small);
+}
+
+.editTitleButton {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--padding-small);
+  margin-right: var(--padding-small);
+}
+
+.editTitleButton:hover {
+  color: var(--text-color);
+}
+
+.blockActions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.moveButton {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--padding-small);
+  margin-right: var(--padding-small);
+}
+
+.moveButton:hover {
+  color: var(--text-color);
 }

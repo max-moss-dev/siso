@@ -4,7 +4,7 @@ import ContextBlocksArea from './ContextBlocksArea';
 import ChatArea from './ChatArea';
 import { FaPlus, FaEdit, FaTrash, FaBars } from 'react-icons/fa';
 
-function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, chatHistory, message, setMessage, onSendMessage, onUpdateProject, onDeleteProject, toggleSidebar, isSidebarOpen }) {
+function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, chatHistory, message, setMessage, onSendMessage, onUpdateProject, onDeleteProject, toggleSidebar, isSidebarOpen, onReorderBlocks }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(projectName);
   const [canEdit, setCanEdit] = useState(true);
@@ -77,20 +77,25 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
         )}
       </div>
       <div className={styles.contentContainer}>
-        <ContextBlocksArea 
-          contextBlocks={contextBlocks}
-          isLoading={isLoading}
-          onUpdateBlock={onUpdateBlock}
-          onDeleteBlock={onDeleteBlock}
-          onGenerateContent={onGenerateContent}
-          onFixContent={onFixContent}  // Add this line
-        />
-        <ChatArea 
-          chatHistory={chatHistory}
-          message={message}
-          setMessage={setMessage}
-          onSendMessage={onSendMessage}
-        />
+        <div className={styles.chatColumn}>
+          <ChatArea 
+            chatHistory={chatHistory}
+            message={message}
+            setMessage={setMessage}
+            onSendMessage={onSendMessage}
+          />
+        </div>
+        <div className={styles.contextBlocksColumn}>
+          <ContextBlocksArea 
+            contextBlocks={contextBlocks}
+            isLoading={isLoading}
+            onUpdateBlock={onUpdateBlock}
+            onDeleteBlock={onDeleteBlock}
+            onGenerateContent={onGenerateContent}
+            onFixContent={onFixContent}
+            onReorderBlocks={onReorderBlocks}
+          />
+        </div>
       </div>
     </div>
   );
