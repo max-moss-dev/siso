@@ -280,7 +280,7 @@ body {
 
 .message {
   padding: var(--padding-medium);
-  margin-bottom: var(--padding-small);
+  margin-bottom: var(--padding-medium);
   border-radius: var(--border-radius-medium);
   max-width: 75%;
   border: 1px solid var(--border-color);
@@ -694,4 +694,84 @@ body {
 
 .chatHeader h2 {
   margin: 0;
+}
+
+/* Add these new styles */
+.messageHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--padding-small);
+}
+
+.messageIcon {
+  margin-right: var(--padding-small);
+  font-size: 1.2em;
+}
+
+.messageLabel {
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.messageContent {
+  word-wrap: break-word;
+}
+
+/* Update these existing styles */
+.message {
+  padding: var(--padding-medium);
+  margin-bottom: var(--padding-medium);
+  border-radius: var(--border-radius-medium);
+  max-width: 75%;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  font-size: var(--font-size-normal);
+}
+
+.userMessage {
+  background-color: var(--accent-color);
+  color: white;
+  align-self: flex-end;
+  margin-left: auto;
+}
+
+.aiMessage {
+  background-color: var(--surface-color);
+  color: var(--text-color);
+  align-self: flex-start;
+}
+
+/* Add styles for markdown content */
+.messageContent p {
+  margin: 0 0 var(--padding-small) 0;
+}
+
+.messageContent p:last-child {
+  margin-bottom: 0;
+}
+
+.messageContent pre {
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: var(--padding-small);
+  border-radius: var(--border-radius-small);
+  overflow-x: auto;
+}
+
+.messageContent code {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9em;
+}
+
+.messageContent ul, .messageContent ol {
+  margin: var(--padding-small) 0;
+  padding-left: var(--padding-large);
+}
+
+.messageContent a {
+  color: #00b0f4;
+  text-decoration: none;
+}
+
+.messageContent a:hover {
+  text-decoration: underline;
 }

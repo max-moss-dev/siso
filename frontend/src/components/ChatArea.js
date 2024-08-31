@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import styles from '../App.module.css';
-import { FaPaperPlane } from 'react-icons/fa'; // Import the paper plane icon
+import { FaPaperPlane, FaUser, FaRobot } from 'react-icons/fa';
+import ReactMarkdown from 'react-markdown';
 
 function ChatArea({ chatHistory, message, setMessage, onSendMessage }) {
   const chatHistoryRef = useRef(null);
@@ -26,7 +27,22 @@ function ChatArea({ chatHistory, message, setMessage, onSendMessage }) {
               msg.role === 'user' ? styles.userMessage : styles.aiMessage
             }`}
           >
-            {msg.content}
+            <div className={styles.messageHeader}>
+              {msg.role === 'user' ? (
+                <>
+                  <FaUser className={styles.messageIcon} />
+                  <span className={styles.messageLabel}>You</span>
+                </>
+              ) : (
+                <>
+                  <FaRobot className={styles.messageIcon} />
+                  <span className={styles.messageLabel}>AI</span>
+                </>
+              )}
+            </div>
+            <div className={styles.messageContent}>
+              <ReactMarkdown>{msg.content}</ReactMarkdown>
+            </div>
           </div>
         ))}
       </div>
