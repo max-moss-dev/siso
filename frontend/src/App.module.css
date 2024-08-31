@@ -651,7 +651,7 @@ body {
 
 .contextBlocksTitle {
   font-size: var(--font-size-large);
-  margin-bottom: var(--padding-medium);
+  margin: 0 0 var(--padding-medium);
   color: var(--text-color);
 }
 
@@ -666,4 +666,15 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.chatHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.chatHeader h2 {
+  margin: 0;
 }

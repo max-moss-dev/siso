@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import styles from '../App.module.css';
 import ContextBlocksArea from './ContextBlocksArea';
 import ChatArea from './ChatArea';
-import { FaEdit, FaTrash, FaBars } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaBars, FaEraser } from 'react-icons/fa';
 
-function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, chatHistory, message, setMessage, onSendMessage, onUpdateProject, onDeleteProject, toggleSidebar, isSidebarOpen, onReorderBlocks }) {
+function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, chatHistory, message, setMessage, onSendMessage, onUpdateProject, onDeleteProject, toggleSidebar, isSidebarOpen, onReorderBlocks, onClearChatHistory, isClearingChat }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(projectName);
   const [canEdit, setCanEdit] = useState(true);
@@ -72,6 +72,17 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
       </div>
       <div className={styles.contentContainer}>
         <div className={styles.chatColumn}>
+          <div className={styles.chatHeader}>
+            <h2>Chat</h2>
+            <button
+              onClick={onClearChatHistory}
+              className={`${styles.button} ${styles.secondaryButton}`}
+              disabled={isClearingChat}
+              title="Clear Chat History"
+            >
+              <FaEraser /> {isClearingChat ? 'Clearing...' : 'Clear Chat'}
+            </button>
+          </div>
           <ChatArea 
             chatHistory={chatHistory}
             message={message}

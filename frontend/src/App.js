@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar';
 import MainArea from './components/MainArea';
 import AddBlockModal from './components/AddBlockModal';
 import AddProjectModal from './components/AddProjectModal';
+import { FaTrash } from 'react-icons/fa';
 
 const API_URL = 'http://localhost:8000';
 
@@ -21,6 +22,7 @@ function AppContent() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isClearingChat, setIsClearingChat] = useState(false);
 
   const fetchContextBlocks = React.useCallback(async () => {
     if (!selectedProject) return;
@@ -59,20 +61,48 @@ function AppContent() {
     }
   }, [selectedProject, fetchContextBlocks]);
 
+  useEffect(() => {
+    if (selectedProject) {
+      fetchChatHistory();
+    }
+  }, [selectedProject]);
+
+  const fetchChatHistory = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/projects/${selectedProject}/chat_history`);
+      setChatHistory(response.data);
+    } catch (error) {
+      console.error("Error fetching chat history:", error);
+    }
+  };
+
   const handleSend = async () => {
     if (message.trim() === '') return;
-    const newHistory = [...chatHistory, { role: 'user', content: message }];
-    setChatHistory(newHistory);
+    const newMessage = { role: 'user', content: message };
+    setChatHistory([...chatHistory, newMessage]);
     setMessage('');
 
     try {
       const response = await axios.post(`${API_URL}/projects/${selectedProject}/chat`, {
         message,
-        history: newHistory,
       });
-      setChatHistory([...newHistory, { role: 'assistant', content: response.data.response }]);
+      setChatHistory([...chatHistory, newMessage, { role: 'assistant', content: response.data.response }]);
     } catch (error) {
       console.error("Error sending message:", error);
+    }
+  };
+
+  const handleClearChatHistory = async () => {
+    if (window.confirm('Are you sure you want to clear the chat history?')) {
+      setIsClearingChat(true);
+      try {
+        await axios.delete(`${API_URL}/projects/${selectedProject}/chat_history`);
+        setChatHistory([]);
+      } catch (error) {
+        console.error("Error clearing chat history:", error);
+      } finally {
+        setIsClearingChat(false);
+      }
     }
   };
 
@@ -210,8 +240,8 @@ function AppContent() {
         message={message}
         setMessage={setMessage}
         onSendMessage={handleSend}
-        onUpdateProject={handleUpdateProject}
-        onDeleteProject={handleDeleteProject}
+        onClearChatHistory={handleClearChatHistory}
+        isClearingChat={isClearingChat}
         toggleSidebar={toggleSidebar}
         isSidebarOpen={isSidebarOpen}
         onReorderBlocks={handleReorderBlocks}

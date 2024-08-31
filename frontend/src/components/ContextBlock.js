@@ -14,7 +14,6 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
   const [isCollapsed, setIsCollapsed] = useState(true); // Set to true by default
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [pendingContent, setPendingContent] = useState(null);
-  const [pendingAction, setPendingAction] = useState(null);
 
   const handleUpdate = useCallback((field, value) => {
     onUpdate(block.id, { ...block, [field]: value });
@@ -45,7 +44,6 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
       const newFixedContent = await onFixContent(block.id, localContent);
       if (newFixedContent && typeof newFixedContent === 'string') {
         setPendingContent(newFixedContent);
-        setPendingAction('fix');
         setShowComparison(true);
       } else {
         console.error("Invalid fixed content received:", newFixedContent);
@@ -68,7 +66,6 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
       if (newImprovedContent !== undefined) {
         if (typeof newImprovedContent === 'string') {
           setPendingContent(newImprovedContent);
-          setPendingAction('improve');
           setShowComparison(true);
         } else {
           console.error("Invalid improved content type:", typeof newImprovedContent);
@@ -89,13 +86,11 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
       setLocalContent(pendingContent);
     }
     setPendingContent(null);
-    setPendingAction(null);
     setShowComparison(false);
   };
 
   const handleReject = () => {
     setPendingContent(null);
-    setPendingAction(null);
     setShowComparison(false);
   };
 

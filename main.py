@@ -6,10 +6,11 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 import logging
-from sqlalchemy import create_engine, Column, String, JSON, ForeignKey, inspect, Integer, func, text
+from sqlalchemy import create_engine, Column, String, JSON, ForeignKey, inspect, Integer, func, text, Text
 from sqlalchemy.orm import sessionmaker, Session, relationship, declarative_base
 from uuid import uuid4
 from sqlalchemy.exc import SQLAlchemyError
+from datetime import datetime
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -57,6 +58,19 @@ class ContextBlockModel(Base):
 
 ProjectModel.context_blocks = relationship("ContextBlockModel", back_populates="project")
 
+class ChatMessageModel(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(String, primary_key=True, index=True)
+    project_id = Column(String, ForeignKey("projects.id"))
+    role = Column(String)
+    content = Column(Text)
+    timestamp = Column(String)
+
+    project = relationship("ProjectModel", back_populates="chat_messages")
+
+ProjectModel.chat_messages = relationship("ChatMessageModel", back_populates="project", cascade="all, delete-orphan")
+
 def recreate_database():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
@@ -81,7 +95,6 @@ class ContextBlock(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
-    history: List[Dict[str, str]]
 
 class GenerateContentRequest(BaseModel):
     block_id: str
@@ -173,9 +186,12 @@ async def chat(project_id: str, request: ChatRequest, db: Session = Depends(get_
     blocks = db.query(ContextBlockModel).filter(ContextBlockModel.project_id == project_id).all()
     context = "\n".join([f"{block.title}: {block.content}" for block in blocks])
     
+    # Fetch existing chat history for the project
+    chat_history = db.query(ChatMessageModel).filter(ChatMessageModel.project_id == project_id).order_by(ChatMessageModel.timestamp).all()
+    
     messages = [
         {"role": "system", "content": f"Context:\n{context}\n\nUse the above context to answer the user's questions."},
-        *request.history,
+        *[{"role": msg.role, "content": msg.content} for msg in chat_history],
         {"role": "user", "content": request.message}
     ]
     
@@ -185,7 +201,38 @@ async def chat(project_id: str, request: ChatRequest, db: Session = Depends(get_
     )
     
     bot_message = response.choices[0].message.content
+
+    # Save the new messages to the database
+    new_user_message = ChatMessageModel(
+        id=str(uuid4()),
+        project_id=project_id,
+        role="user",
+        content=request.message,
+        timestamp=datetime.utcnow().isoformat()
+    )
+    new_bot_message = ChatMessageModel(
+        id=str(uuid4()),
+        project_id=project_id,
+        role="assistant",
+        content=bot_message,
+        timestamp=datetime.utcnow().isoformat()
+    )
+    db.add(new_user_message)
+    db.add(new_bot_message)
+    db.commit()
+
     return {"response": bot_message}
+
+@app.get("/projects/{project_id}/chat_history")
+async def get_chat_history(project_id: str, db: Session = Depends(get_db)):
+    chat_history = db.query(ChatMessageModel).filter(ChatMessageModel.project_id == project_id).order_by(ChatMessageModel.timestamp).all()
+    return [{"role": msg.role, "content": msg.content} for msg in chat_history]
+
+@app.delete("/projects/{project_id}/chat_history")
+async def clear_chat_history(project_id: str, db: Session = Depends(get_db)):
+    db.query(ChatMessageModel).filter(ChatMessageModel.project_id == project_id).delete()
+    db.commit()
+    return {"message": "Chat history cleared successfully"}
 
 @app.post("/projects/{project_id}/generate_content")
 async def generate_content(project_id: str, request: GenerateContentRequest, db: Session = Depends(get_db)):
