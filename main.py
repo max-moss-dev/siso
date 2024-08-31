@@ -283,6 +283,7 @@ def create_default_project(db: Session):
 
 @app.on_event("startup")
 async def startup_event():
+    create_tables()
     db = SessionLocal()
     try:
         projects = db.query(ProjectModel).all()
@@ -291,7 +292,9 @@ async def startup_event():
     finally:
         db.close()
 
+def create_tables():
+    Base.metadata.create_all(bind=engine)
+
 if __name__ == "__main__":
-    recreate_database()
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
