@@ -2,6 +2,8 @@ import React, { useRef, useEffect } from 'react';
 import styles from '../App.module.css';
 import { FaPaperPlane, FaUser, FaRobot } from 'react-icons/fa';
 import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 function ChatArea({ chatHistory, message, setMessage, onSendMessage }) {
   const chatHistoryRef = useRef(null);
@@ -15,6 +17,26 @@ function ChatArea({ chatHistory, message, setMessage, onSendMessage }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     onSendMessage();
+  };
+
+  const renderers = {
+    code: ({node, inline, className, children, ...props}) => {
+      const match = /language-(\w+)/.exec(className || '');
+      return !inline && match ? (
+        <SyntaxHighlighter
+          style={vscDarkPlus}
+          language={match[1]}
+          PreTag="div"
+          {...props}
+        >
+          {String(children).replace(/\n$/, '')}
+        </SyntaxHighlighter>
+      ) : (
+        <code className={className} {...props}>
+          {children}
+        </code>
+      )
+    }
   };
 
   return (
@@ -41,7 +63,7 @@ function ChatArea({ chatHistory, message, setMessage, onSendMessage }) {
               )}
             </div>
             <div className={styles.messageContent}>
-              <ReactMarkdown>{msg.content}</ReactMarkdown>
+              <ReactMarkdown components={renderers}>{msg.content}</ReactMarkdown>
             </div>
           </div>
         ))}

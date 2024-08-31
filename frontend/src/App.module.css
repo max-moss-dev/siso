@@ -751,8 +751,9 @@ body {
 }
 
 .messageContent pre {
-  background-color: rgba(0, 0, 0, 0.1);
-  padding: var(--padding-small);
+  background-color: transparent;
+  padding: 0;
+  margin: var(--padding-small) 0;
   border-radius: var(--border-radius-small);
   overflow-x: auto;
 }
@@ -760,6 +761,26 @@ body {
 .messageContent code {
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.9em;
+}
+
+/* Add styles for syntax highlighting */
+.messageContent pre > div {
+  border-radius: var(--border-radius-small);
+  padding: var(--padding-small);
+}
+
+/* Adjust the color for inline code in user messages */
+.userMessage .messageContent code {
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+/* Adjust the color for inline code in AI messages */
+.aiMessage .messageContent code {
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 2px 4px;
+  border-radius: 3px;
 }
 
 .messageContent ul, .messageContent ol {
