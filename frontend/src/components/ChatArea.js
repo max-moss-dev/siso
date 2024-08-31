@@ -1,31 +1,47 @@
-import React from 'react';
-import ReactMarkdown from 'react-markdown';
-import { FaUser, FaRobot, FaPaperPlane } from 'react-icons/fa';
+import React, { useRef, useEffect } from 'react';
 import styles from '../App.module.css';
+import { FaPaperPlane } from 'react-icons/fa'; // Import the paper plane icon
 
 function ChatArea({ chatHistory, message, setMessage, onSendMessage }) {
+  const chatHistoryRef = useRef(null);
+
+  useEffect(() => {
+    if (chatHistoryRef.current) {
+      chatHistoryRef.current.scrollTop = chatHistoryRef.current.scrollHeight;
+    }
+  }, [chatHistory]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSendMessage();
+  };
+
   return (
     <div className={styles.chatContainer}>
-      <div className={styles.chatHistory}>
-        {chatHistory.map((chat, index) => (
-          <div key={index} className={`${styles.message} ${chat.role === 'user' ? styles.userMessage : styles.aiMessage}`}>
-            {chat.role === 'user' ? <FaUser /> : <FaRobot />}
-            <ReactMarkdown>{chat.content}</ReactMarkdown>
+      <div className={styles.chatHistory} ref={chatHistoryRef}>
+        {chatHistory.map((msg, index) => (
+          <div
+            key={index}
+            className={`${styles.message} ${
+              msg.role === 'user' ? styles.userMessage : styles.aiMessage
+            }`}
+          >
+            {msg.content}
           </div>
         ))}
       </div>
-      <div className={styles.inputSection}>
+      <form onSubmit={handleSubmit} className={styles.inputSection}>
         <input
-          className={styles.input}
+          type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && onSendMessage()}
           placeholder="Type your message..."
+          className={styles.input}
         />
-        <button className={`${styles.button} ${styles.primaryButton} ${styles.sendButton}`} onClick={onSendMessage}>
+        <button type="submit" className={styles.sendButton}>
           <FaPaperPlane />
         </button>
-      </div>
+      </form>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Route, Routes, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './App.module.css';
@@ -6,7 +6,6 @@ import Sidebar from './components/Sidebar';
 import MainArea from './components/MainArea';
 import AddBlockModal from './components/AddBlockModal';
 import AddProjectModal from './components/AddProjectModal';
-import { FaTrash } from 'react-icons/fa';
 
 const API_URL = 'http://localhost:8000';
 
@@ -24,7 +23,7 @@ function AppContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isClearingChat, setIsClearingChat] = useState(false);
 
-  const fetchContextBlocks = React.useCallback(async () => {
+  const fetchContextBlocks = useCallback(async () => {
     if (!selectedProject) return;
     try {
       const response = await axios.get(`${API_URL}/projects/${selectedProject}/context_blocks`);
@@ -33,6 +32,16 @@ function AppContent() {
     } catch (error) {
       console.error("Error fetching context blocks:", error);
       setIsLoading(false);
+    }
+  }, [selectedProject]);
+
+  const fetchChatHistory = useCallback(async () => {
+    if (!selectedProject) return;
+    try {
+      const response = await axios.get(`${API_URL}/projects/${selectedProject}/chat_history`);
+      setChatHistory(response.data);
+    } catch (error) {
+      console.error("Error fetching chat history:", error);
     }
   }, [selectedProject]);
 
@@ -58,23 +67,9 @@ function AppContent() {
   useEffect(() => {
     if (selectedProject) {
       fetchContextBlocks();
-    }
-  }, [selectedProject, fetchContextBlocks]);
-
-  useEffect(() => {
-    if (selectedProject) {
       fetchChatHistory();
     }
-  }, [selectedProject]);
-
-  const fetchChatHistory = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/projects/${selectedProject}/chat_history`);
-      setChatHistory(response.data);
-    } catch (error) {
-      console.error("Error fetching chat history:", error);
-    }
-  };
+  }, [selectedProject, fetchContextBlocks, fetchChatHistory]);
 
   const handleSend = async () => {
     if (message.trim() === '') return;
@@ -143,7 +138,7 @@ function AppContent() {
   const handleGenerateContent = async (blockId, currentContent) => {
     try {
       const response = await axios.post(`${API_URL}/projects/${selectedProject}/generate_content`, { block_id: blockId, content: currentContent });
-      return response.data.content; // This should return the new content as a string
+      return response.data.content;
     } catch (error) {
       console.error("Error generating content:", error);
       throw error;
@@ -160,7 +155,6 @@ function AppContent() {
       const response = await axios.post(`${API_URL}/projects`, { name: projectName });
       setProjects([...projects, response.data]);
       setShowAddProjectModal(false);
-      // Optionally, you can automatically select the new project:
       handleProjectSelect(response.data.id);
     } catch (error) {
       console.error("Error adding new project:", error);
@@ -212,7 +206,6 @@ function AppContent() {
       await axios.put(`${API_URL}/projects/${selectedProject}/reorder_blocks`, { blocks: reorderedBlocks.map(block => block.id) });
     } catch (error) {
       console.error("Error reordering blocks:", error);
-      // Optionally, revert the order if the API call fails
       fetchContextBlocks();
     }
   };
@@ -240,6 +233,8 @@ function AppContent() {
         message={message}
         setMessage={setMessage}
         onSendMessage={handleSend}
+        onUpdateProject={handleUpdateProject}
+        onDeleteProject={handleDeleteProject}
         onClearChatHistory={handleClearChatHistory}
         isClearingChat={isClearingChat}
         toggleSidebar={toggleSidebar}
