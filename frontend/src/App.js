@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar';
 import MainArea from './components/MainArea';
 import AddBlockModal from './components/AddBlockModal';
 import AddProjectModal from './components/AddProjectModal';
+import { FaBars } from 'react-icons/fa';
 
 const API_URL = 'http://localhost:8000';
 
@@ -20,6 +21,7 @@ function AppContent() {
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const fetchContextBlocks = React.useCallback(async () => {
     if (!selectedProject) return;
@@ -174,6 +176,10 @@ function AppContent() {
     }
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   return (
     <div className={styles.app}>
       <Sidebar 
@@ -181,6 +187,7 @@ function AppContent() {
         selectedProject={selectedProject}
         onProjectSelect={handleProjectSelect}
         onAddProject={() => setShowAddProjectModal(true)}
+        isOpen={isSidebarOpen}
       />
       <MainArea
         projectName={projects.find(p => p.id === selectedProject)?.name || 'No Project Selected'}
@@ -191,13 +198,15 @@ function AppContent() {
         onUpdateBlock={handleUpdateBlock}
         onDeleteBlock={handleDeleteBlock}
         onGenerateContent={handleGenerateContent}
-        onFixContent={handleFixContent}  // Add this line
+        onFixContent={handleFixContent}
         chatHistory={chatHistory}
         message={message}
         setMessage={setMessage}
         onSendMessage={handleSend}
         onUpdateProject={handleUpdateProject}
         onDeleteProject={handleDeleteProject}
+        toggleSidebar={toggleSidebar}
+        isSidebarOpen={isSidebarOpen}
       />
       {showAddBlockModal && <AddBlockModal onAddBlock={handleAddBlock} onClose={() => setShowAddBlockModal(false)} />}
       {showAddProjectModal && <AddProjectModal onAddProject={handleAddProject} onClose={() => setShowAddProjectModal(false)} />}

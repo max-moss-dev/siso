@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import styles from '../App.module.css';
 import ContextBlocksArea from './ContextBlocksArea';
 import ChatArea from './ChatArea';
-import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaBars } from 'react-icons/fa';
 
-function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, chatHistory, message, setMessage, onSendMessage, onUpdateProject, onDeleteProject }) {
+function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, chatHistory, message, setMessage, onSendMessage, onUpdateProject, onDeleteProject, toggleSidebar, isSidebarOpen }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(projectName);
   const [canEdit, setCanEdit] = useState(true);
@@ -29,6 +29,12 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
   return (
     <div className={styles.mainContent}>
       <div className={styles.projectHeader}>
+        <button 
+          onClick={toggleSidebar} 
+          className={`${styles.button} ${styles.secondaryButton} ${styles.toggleSidebarButton}`}
+        >
+          <FaBars />
+        </button>
         {isEditing ? (
           <div className={styles.editProjectName}>
             <input

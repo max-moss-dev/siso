@@ -2,9 +2,9 @@ import React from 'react';
 import { FaCube, FaPlus } from 'react-icons/fa';
 import styles from '../App.module.css';
 
-function Sidebar({ projects, selectedProject, onProjectSelect, onAddProject }) {
+function Sidebar({ projects, selectedProject, onProjectSelect, onAddProject, isOpen }) {
   return (
-    <div className={styles.sidebar}>
+    <div className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : styles.sidebarClosed}`}>
       <h2>Projects</h2>
       {projects.map(project => (
         <div 
