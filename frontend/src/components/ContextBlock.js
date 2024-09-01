@@ -7,13 +7,13 @@ import styles from '../App.module.css';
 function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixContent, onMoveUp, onMoveDown, isFirst, isLast }) {
   const textareaRef = useRef(null);
   const [localContent, setLocalContent] = useState(block.content);
-  const [isFixing, setIsFixing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isFixing, setIsFixing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [pendingContent, setPendingContent] = useState(null);
+  const [pendingContent, setPendingContent] = useState(block.pendingContent);
 
   const handleUpdate = useCallback((field, value) => {
     onUpdate(block.id, { ...block, [field]: value });
@@ -22,6 +22,10 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
   useEffect(() => {
     setLocalContent(block.content);
   }, [block.content]);
+
+  useEffect(() => {
+    setPendingContent(block.pendingContent);
+  }, [block.pendingContent]);
 
   const handleTextareaChange = (e) => {
     const value = e.target.value;
@@ -38,39 +42,31 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
     return () => clearTimeout(timeoutId);
   }, [localContent, block.content, handleUpdate, showComparison]);
 
-  const handleFix = async () => {
-    setIsFixing(true);
+  const handleNewContent = async (getContent, setLoadingState, showComparison = false) => {
+    setLoadingState(true);
     try {
-      const newFixedContent = await onFixContent(block.id, localContent);
-      if (newFixedContent && typeof newFixedContent === 'string') {
-        setPendingContent(newFixedContent);
-        setShowComparison(true);
+      const newContent = await getContent();
+      if (newContent && typeof newContent === 'string') {
+        if (showComparison) {
+          setPendingContent(newContent);
+          setShowComparison(true);
+        } else {
+          handleUpdate('content', newContent);
+          setLocalContent(newContent);
+        }
       } else {
-        console.error("Invalid fixed content received:", newFixedContent);
+        console.error("Invalid content received:", newContent);
       }
     } catch (error) {
-      console.error("Error fixing content:", error);
+      console.error("Error handling content:", error);
     } finally {
-      setIsFixing(false);
+      setLoadingState(false);
     }
   };
 
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    try {
-      const newGeneratedContent = await onGenerateContent(block.id, '');
-      if (newGeneratedContent && typeof newGeneratedContent === 'string') {
-        handleUpdate('content', newGeneratedContent);
-        setLocalContent(newGeneratedContent);
-      } else {
-        console.error("Invalid generated content received:", newGeneratedContent);
-      }
-    } catch (error) {
-      console.error("Error generating content:", error);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+  const handleFix = () => handleNewContent(() => onFixContent(block.id, localContent), setIsFixing, true);
+
+  const handleGenerate = () => handleNewContent(() => onGenerateContent(block.id, ''), setIsGenerating);
 
   const handleImprove = async () => {
     setIsGenerating(true);
@@ -104,9 +100,13 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
   };
 
   const renderDiff = (oldContent, newContent) => {
-    if (!oldContent || !newContent || typeof oldContent !== 'string' || typeof newContent !== 'string') {
-      return <span>Unable to display diff. Invalid content.</span>;
+    // Ensure oldContent is a string, use an empty string if it's null or undefined
+    oldContent = oldContent || '';
+    
+    if (typeof newContent !== 'string') {
+      return <span>Unable to display diff. Invalid new content.</span>;
     }
+
     const diff = diffWords(oldContent, newContent);
     return diff.map((part, index) => {
       if (part.added) {
@@ -173,10 +173,18 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
         </div>
       </div>
       <div className={`${styles.contextBlockContent} ${isCollapsed ? styles.collapsed : ''}`}>
-        {block.type === 'text' && showComparison ? (
+        {pendingContent ? (
           <div className={styles.comparisonView}>
-            <h4>Suggested Changes</h4>
+            <h4>Suggested Changes for "{block.title}"</h4>
             <pre className={styles.diffContent}>{renderDiff(localContent, pendingContent)}</pre>
+            <div className={styles.blockButtons}>
+              <button onClick={handleAccept} className={`${styles.button} ${styles.primaryButton}`}>
+                <FaCheck /> Accept
+              </button>
+              <button onClick={handleReject} className={`${styles.button} ${styles.secondaryButton}`}>
+                <FaTimes /> Reject
+              </button>
+            </div>
           </div>
         ) : block.type === 'text' ? (
           isEditing ? (
@@ -214,58 +222,47 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
             </button>
           </ul>
         )}
-        <div className={styles.blockButtons}>
-          {showComparison ? (
-            <>
-              <button onClick={handleAccept} className={`${styles.button} ${styles.primaryButton}`}>
-                <FaCheck /> Accept
-              </button>
-              <button onClick={handleReject} className={`${styles.button} ${styles.secondaryButton}`}>
-                <FaTimes /> Reject
-              </button>
-            </>
-          ) : (
-            <>
-              <button onClick={() => onDelete(block.id)} className={`${styles.button} ${styles.dangerButton}`}>
-                <FaTrash /> Delete
-              </button>
-              {localContent ? (
-                <>
-                  <button 
-                    onClick={handleFix} 
-                    className={`${styles.button} ${styles.secondaryButton}`}
-                    disabled={isFixing}
-                  >
-                    <FaWrench /> {isFixing ? 'Fixing...' : 'Fix'}
-                  </button>
-                  <button 
-                    onClick={handleImprove} 
-                    className={`${styles.button} ${styles.secondaryButton}`}
-                    disabled={isGenerating}
-                  >
-                    <FaMagic /> {isGenerating ? 'Improving...' : 'Improve'}
-                  </button>
-                </>
-              ) : (
+        {!pendingContent && (
+          <div className={styles.blockButtons}>
+            <button onClick={() => onDelete(block.id)} className={`${styles.button} ${styles.dangerButton}`}>
+              <FaTrash /> Delete
+            </button>
+            {localContent ? (
+              <>
                 <button 
-                  onClick={handleGenerate} 
-                  className={`${styles.button} ${styles.primaryButton}`}
+                  onClick={handleFix} 
+                  className={`${styles.button} ${styles.secondaryButton}`}
+                  disabled={isFixing}
+                >
+                  <FaWrench /> {isFixing ? 'Fixing...' : 'Fix'}
+                </button>
+                <button 
+                  onClick={handleImprove} 
+                  className={`${styles.button} ${styles.secondaryButton}`}
                   disabled={isGenerating}
                 >
-                  <FaMagic /> {isGenerating ? 'Generating...' : 'Generate'}
+                  <FaMagic /> {isGenerating ? 'Improving...' : 'Improve'}
                 </button>
-              )}
-              {block.type === 'text' && (
-                <button 
-                  onClick={() => setIsEditing(!isEditing)} 
-                  className={`${styles.button} ${styles.secondaryButton}`}
-                >
-                  <FaExchangeAlt /> {isEditing ? 'View' : 'Edit'}
-                </button>
-              )}
-            </>
-          )}
-        </div>
+              </>
+            ) : (
+              <button 
+                onClick={handleGenerate} 
+                className={`${styles.button} ${styles.primaryButton}`}
+                disabled={isGenerating}
+              >
+                <FaMagic /> {isGenerating ? 'Generating...' : 'Generate'}
+              </button>
+            )}
+            {block.type === 'text' && (
+              <button 
+                onClick={() => setIsEditing(!isEditing)} 
+                className={`${styles.button} ${styles.secondaryButton}`}
+              >
+                <FaExchangeAlt /> {isEditing ? 'View' : 'Edit'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

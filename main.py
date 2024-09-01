@@ -11,6 +11,9 @@ from sqlalchemy.orm import sessionmaker, Session, relationship, declarative_base
 from uuid import uuid4
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
+import json
+from fastapi.responses import JSONResponse
+import ast
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -183,24 +186,47 @@ async def delete_context_block(project_id: str, block_id: str, db: Session = Dep
 
 @app.post("/projects/{project_id}/chat")
 async def chat(project_id: str, request: ChatRequest, db: Session = Depends(get_db)):
+    project = db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
     blocks = db.query(ContextBlockModel).filter(ContextBlockModel.project_id == project_id).all()
-    context = "\n".join([f"{block.title}: {block.content}" for block in blocks])
+    context = "\n".join([f"Block ID: {block.id}, Title: {block.title}, Content: {block.content}" for block in blocks])
     
     # Fetch existing chat history for the project
     chat_history = db.query(ChatMessageModel).filter(ChatMessageModel.project_id == project_id).order_by(ChatMessageModel.timestamp).all()
     
     messages = [
-        {"role": "system", "content": f"Context:\n{context}\n\nUse the above context to answer the user's questions."},
-        *[{"role": msg.role, "content": msg.content} for msg in chat_history],
+        {"role": "system", "content": f"Project: {project.name}\nContext Blocks:\n{context}\n\nUse the above context to answer the user's questions. If the user asks to update a context block, respond with a JSON object in the format: {{'action': 'update', 'block_id': 'id', 'new_content': 'content'}}. Make sure to use the correct block ID when suggesting updates."},
+        *[{"role": msg.role, "content": msg.content} for msg in chat_history if msg.content is not None],
         {"role": "user", "content": request.message}
     ]
     
+    # Log the full user message including all instructions and context
+    full_user_message = "\n".join([msg["content"] for msg in messages if msg["content"] is not None])
+    logger.info("Full user message: %s", full_user_message)
+    
     response = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=messages
+        messages=messages,
+        functions=[
+            {
+                "name": "update_context_block",
+                "description": "Update a context block with new content",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "block_id": {"type": "string"},
+                        "new_content": {"type": "string"}
+                    },
+                    "required": ["block_id", "new_content"]
+                }
+            }
+        ]
     )
     
     bot_message = response.choices[0].message.content
+    logger.info("Bot message: %s", bot_message)
 
     # Save the new messages to the database
     new_user_message = ChatMessageModel(
@@ -214,14 +240,62 @@ async def chat(project_id: str, request: ChatRequest, db: Session = Depends(get_
         id=str(uuid4()),
         project_id=project_id,
         role="assistant",
-        content=bot_message,
+        content=bot_message if bot_message is not None else "",
         timestamp=datetime.utcnow().isoformat()
     )
     db.add(new_user_message)
     db.add(new_bot_message)
     db.commit()
 
-    return {"response": bot_message}
+    context_update = None
+    # Check for context block commands in the bot's response
+    try:
+        if bot_message is None:
+            # Check if there's a function call
+            function_call = response.choices[0].message.function_call
+            if function_call and function_call.name == "update_context_block":
+                arguments = json.loads(function_call.arguments)
+                block_id = arguments.get("block_id")
+                new_content = arguments.get("new_content")
+                db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == block_id, ContextBlockModel.project_id == project_id).first()
+                if db_block:
+                    context_update = {
+                        "block_id": db_block.id,
+                        "block_title": db_block.title,
+                        "new_content": new_content
+                    }
+                    logger.info("Context update prepared for block '%s'", db_block.title)
+                else:
+                    logger.warning("Context block with ID '%s' not found", block_id)
+            else:
+                logger.warning("Received empty response from AI")
+        elif isinstance(bot_message, str):
+            # Try to evaluate the string as a Python literal
+            bot_response = ast.literal_eval(bot_message)
+            if isinstance(bot_response, dict) and bot_response.get('action') == 'update':
+                block_id = bot_response.get('block_id')
+                new_content = bot_response.get('new_content')
+                db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == block_id, ContextBlockModel.project_id == project_id).first()
+                if db_block:
+                    context_update = {
+                        "block_id": db_block.id,
+                        "block_title": db_block.title,
+                        "new_content": new_content
+                    }
+                    logger.info("Context update prepared for block '%s'", db_block.title)
+                else:
+                    logger.warning("Context block with ID '%s' not found", block_id)
+            else:
+                logger.info("No update action found in bot response")
+        else:
+            logger.warning("Unexpected bot message type: %s", type(bot_message))
+    except (ValueError, SyntaxError) as e:
+        logger.error(f"Failed to parse bot response: {e}")
+    
+    # If context_update is None, set bot_message as the response
+    response_content = {"response": bot_message if bot_message is not None else "", "context_update": context_update}
+    
+    return JSONResponse(content=response_content)
 
 @app.get("/projects/{project_id}/chat_history")
 async def get_chat_history(project_id: str, db: Session = Depends(get_db)):

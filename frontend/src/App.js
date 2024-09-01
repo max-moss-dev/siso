@@ -81,7 +81,27 @@ function AppContent() {
       const response = await axios.post(`${API_URL}/projects/${selectedProject}/chat`, {
         message,
       });
-      setChatHistory([...chatHistory, newMessage, { role: 'assistant', content: response.data.response }]);
+      const { response: aiResponse, context_update } = response.data;
+      let updatedAiResponse = aiResponse;
+
+      console.log("Context update:", context_update);
+      if (context_update) {
+        const { block_id, block_title, new_content } = context_update;
+        const blockToUpdate = contextBlocks.find(block => block.id === block_id);
+        if (blockToUpdate) {
+          const updatedBlock = { ...blockToUpdate, pendingContent: new_content };
+          setContextBlocks(contextBlocks.map(block => block.id === block_id ? updatedBlock : block));
+          updatedAiResponse = `I've suggested an update to the "${block_title}" context block. Please review and accept or reject the changes.`;
+        } else {
+          console.error(`Context block with ID ${block_id} not found`);
+          updatedAiResponse = `I tried to update a context block, but couldn't find it. Please check the block IDs.`;
+        }
+      } else {
+        fetchContextBlocks(); // Fetch updated context blocks if no proposed changes
+      }
+
+      setChatHistory([...chatHistory, newMessage, { role: 'assistant', content: updatedAiResponse }]);
+      console.log("AI response:", updatedAiResponse);
     } catch (error) {
       console.error("Error sending message:", error);
     }
