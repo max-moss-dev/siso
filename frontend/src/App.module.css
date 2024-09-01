@@ -202,6 +202,7 @@ body {
   border: 1px solid var(--border-color);
   margin-bottom: var(--padding-medium);
   cursor: move; /* Indicates the block is draggable */
+  transition: background-color 0.3s ease;
 }
 
 .contextBlock:hover {
@@ -795,4 +796,15 @@ body {
 
 .messageContent a:hover {
   text-decoration: underline;
+}
+
+.pendingChanges {
+  background-color: #585858;
+}
+
+.comparisonView {
+  background-color: #36393f;
+  padding: 10px;
+  border-radius: 0 0 4px 4px;
+  margin-bottom: 10px;
 }

@@ -39,7 +39,17 @@ function AppContent() {
     if (!selectedProject) return;
     try {
       const response = await axios.get(`${API_URL}/projects/${selectedProject}/chat_history`);
-      setChatHistory(response.data);
+      const history = response.data.map(msg => {
+        if (msg.role === 'assistant' && msg.context_update) {
+          const { block_title } = msg.context_update;
+          return {
+            ...msg,
+            content: `${msg.content}\n\nI've suggested an update to the "${block_title}" context block. Please review and accept or reject the changes.`
+          };
+        }
+        return msg;
+      });
+      setChatHistory(history);
     } catch (error) {
       console.error("Error fetching chat history:", error);
     }
@@ -82,26 +92,35 @@ function AppContent() {
         message,
       });
       const { response: aiResponse, context_update } = response.data;
-      let updatedAiResponse = aiResponse;
-
+      console.log("AI response:", aiResponse);
       console.log("Context update:", context_update);
+
+      let updatedAiResponse = aiResponse;
       if (context_update) {
         const { block_id, block_title, new_content } = context_update;
         const blockToUpdate = contextBlocks.find(block => block.id === block_id);
         if (blockToUpdate) {
           const updatedBlock = { ...blockToUpdate, pendingContent: new_content };
           setContextBlocks(contextBlocks.map(block => block.id === block_id ? updatedBlock : block));
-          updatedAiResponse = `I've suggested an update to the "${block_title}" context block. Please review and accept or reject the changes.`;
+          updatedAiResponse += `\n\nI've suggested an update to the "${block_title}" context block. Please review and accept or reject the changes.`;
         } else {
           console.error(`Context block with ID ${block_id} not found`);
-          updatedAiResponse = `I tried to update a context block, but couldn't find it. Please check the block IDs.`;
+          updatedAiResponse += `\n\nI tried to update a context block, but couldn't find it. Please check the block IDs.`;
         }
-      } else {
-        fetchContextBlocks(); // Fetch updated context blocks if no proposed changes
       }
 
-      setChatHistory([...chatHistory, newMessage, { role: 'assistant', content: updatedAiResponse }]);
-      console.log("AI response:", updatedAiResponse);
+      // Store both the original AI response and the context update information in the chat history
+      const aiMessage = { 
+        role: 'assistant', 
+        content: updatedAiResponse,
+        original_content: aiResponse,
+        context_update: context_update 
+      };
+      setChatHistory([...chatHistory, newMessage, aiMessage]);
+
+      if (!context_update) {
+        fetchContextBlocks(); // Fetch updated context blocks if no proposed changes
+      }
     } catch (error) {
       console.error("Error sending message:", error);
     }

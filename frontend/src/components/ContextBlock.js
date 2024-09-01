@@ -25,6 +25,9 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
 
   useEffect(() => {
     setPendingContent(block.pendingContent);
+    if (block.pendingContent) {
+      setIsCollapsed(false); // Open the block when there are pending changes
+    }
   }, [block.pendingContent]);
 
   const handleTextareaChange = (e) => {
@@ -50,6 +53,7 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
         if (showComparison) {
           setPendingContent(newContent);
           setShowComparison(true);
+          setIsCollapsed(false); // Open the block when there are suggested changes
         } else {
           handleUpdate('content', newContent);
           setLocalContent(newContent);
@@ -68,22 +72,7 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
 
   const handleGenerate = () => handleNewContent(() => onGenerateContent(block.id, ''), setIsGenerating);
 
-  const handleImprove = async () => {
-    setIsGenerating(true);
-    try {
-      const newImprovedContent = await onGenerateContent(block.id, localContent);
-      if (newImprovedContent && typeof newImprovedContent === 'string') {
-        setPendingContent(newImprovedContent);
-        setShowComparison(true);
-      } else {
-        console.error("Invalid improved content received:", newImprovedContent);
-      }
-    } catch (error) {
-      console.error("Error improving content:", error);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+  const handleImprove = () => handleNewContent(() => onGenerateContent(block.id, localContent), setIsGenerating, true);
 
   const handleAccept = () => {
     if (pendingContent) {
@@ -100,7 +89,6 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
   };
 
   const renderDiff = (oldContent, newContent) => {
-    // Ensure oldContent is a string, use an empty string if it's null or undefined
     oldContent = oldContent || '';
     
     if (typeof newContent !== 'string') {
@@ -137,7 +125,7 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
   };
 
   return (
-    <div className={styles.contextBlock}>
+    <div className={`${styles.contextBlock} ${pendingContent ? styles.pendingChanges : ''}`}>
       <div className={styles.contextBlockHeader} onClick={toggleCollapse}>
         <button onClick={handleTitleEdit} className={styles.editTitleButton}>
           <FaEdit />
