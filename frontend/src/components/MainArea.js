@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import styles from '../App.module.css';
 import ContextBlocksArea from './ContextBlocksArea';
 import ChatArea from './ChatArea';
-import { FaEdit, FaTrash, FaBars, FaEraser } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaEraser } from 'react-icons/fa';
+import ContextSidebarIcon from './ContextSidebarIcon';
 
 function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, chatHistory, message, setMessage, onSendMessage, onUpdateProject, onDeleteProject, toggleSidebar, isSidebarOpen, onReorderBlocks, onClearChatHistory, isClearingChat }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(projectName);
   const [canEdit, setCanEdit] = useState(true);
+  const [isContextSidebarOpen, setIsContextSidebarOpen] = useState(true);
 
   useEffect(() => {
     setEditedName(projectName);
@@ -26,14 +28,19 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
     }
   };
 
+  const toggleContextSidebar = () => {
+    setIsContextSidebarOpen(!isContextSidebarOpen);
+  };
+
   return (
     <div className={styles.mainContent}>
       <div className={styles.projectHeader}>
         <button 
           onClick={toggleSidebar} 
           className={`${styles.button} ${styles.secondaryButton} ${styles.toggleSidebarButton}`}
+          title="Toggle Main Sidebar"
         >
-          <FaBars />
+          <ContextSidebarIcon className={styles.contextSidebarIcon} />
         </button>
         {isEditing ? (
           <div className={styles.editProjectName}>
@@ -65,7 +72,6 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
               >
                 <FaTrash /> Delete Project
               </button>
-              {/* Remove the Add Block button from here */}
             </div>
           </>
         )}
@@ -74,14 +80,23 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
         <div className={styles.chatColumn}>
           <div className={styles.chatHeader}>
             <h2>Chat</h2>
-            <button
-              onClick={onClearChatHistory}
-              className={`${styles.button} ${styles.secondaryButton}`}
-              disabled={isClearingChat}
-              title="Clear Chat History"
-            >
-              <FaEraser /> {isClearingChat ? 'Clearing...' : 'Clear Chat'}
-            </button>
+            <div className={styles.chatHeaderButtons}>
+              <button
+                onClick={onClearChatHistory}
+                className={`${styles.button} ${styles.secondaryButton}`}
+                disabled={isClearingChat}
+                title="Clear Chat History"
+              >
+                <FaEraser /> {isClearingChat ? 'Clearing...' : 'Clear Chat'}
+              </button>
+              <button
+                onClick={toggleContextSidebar}
+                className={`${styles.button} ${styles.secondaryButton} ${styles.toggleContextSidebarButton}`}
+                title={isContextSidebarOpen ? "Hide Context Sidebar" : "Show Context Sidebar"}
+              >
+                <ContextSidebarIcon className={styles.contextSidebarIcon} />
+              </button>
+            </div>
           </div>
           <ChatArea 
             chatHistory={chatHistory}
@@ -90,7 +105,7 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
             onSendMessage={onSendMessage}
           />
         </div>
-        <div className={styles.contextBlocksColumn}>
+        <div className={`${styles.contextBlocksColumn} ${isContextSidebarOpen ? '' : styles.closed}`}>
           <h2 className={styles.contextBlocksTitle}>Context Blocks</h2>
           <ContextBlocksArea 
             contextBlocks={contextBlocks}
