@@ -127,16 +127,14 @@ function AppContent() {
   };
 
   const handleClearChatHistory = async () => {
-    if (window.confirm('Are you sure you want to clear the chat history?')) {
-      setIsClearingChat(true);
-      try {
-        await axios.delete(`${API_URL}/projects/${selectedProject}/chat_history`);
-        setChatHistory([]);
-      } catch (error) {
-        console.error("Error clearing chat history:", error);
-      } finally {
-        setIsClearingChat(false);
-      }
+    setIsClearingChat(true);
+    try {
+      await axios.delete(`${API_URL}/projects/${selectedProject}/chat_history`);
+      setChatHistory([]);
+    } catch (error) {
+      console.error("Error clearing chat history:", error);
+    } finally {
+      setIsClearingChat(false);
     }
   };
 

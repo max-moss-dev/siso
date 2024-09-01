@@ -200,7 +200,12 @@ async def chat(project_id: str, request: ChatRequest, db: Session = Depends(get_
     chat_history = db.query(ChatMessageModel).filter(ChatMessageModel.project_id == project_id).order_by(ChatMessageModel.timestamp).all()
     
     messages = [
-        {"role": "system", "content": f"Project: {project.name}\nContext Blocks:\n{context}\n\nUse the above context to answer the user's questions. If the user asks to update a context block, respond with a JSON object in the format: {{'action': 'update', 'block_id': 'id', 'new_content': 'content'}}. Make sure to use the correct block ID when suggesting updates."},
+        {"role": "system", "content": f"""Project: {project.name}
+Context Blocks:
+{context}
+
+Use the above context to answer the user's questions. If the user asks to update a context block, respond with a JSON object in the format: {{'action': 'update', 'block_id': 'id', 'new_content': 'content'}}. Make sure to use the correct block ID when suggesting updates.
+Important: When updating a context block, do not include the title in the new content. Start directly with the relevant information."""},
         *[{"role": msg.role, "content": msg.content} for msg in chat_history if msg.content is not None],
         {"role": "user", "content": request.message}
     ]
@@ -342,6 +347,7 @@ async def generate_content(project_id: str, request: GenerateContentRequest, db:
 
     Now, generate content for a context block with the title '{db_block.title}'. The content should be in {db_block.type} format.
     Make sure the generated content is coherent with the existing context and recent conversations.
+    Important: Do not include the title in the generated content. Start directly with the relevant information.
     """
 
     response = client.chat.completions.create(

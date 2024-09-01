@@ -678,12 +678,16 @@ body {
   bottom: 20px;
   right: 20px;
   z-index: 100;
-  padding: 10px 20px;
-  border-radius: 30px;
+  padding: var(--padding-small) var(--padding-medium);
+  border-radius: var(--border-radius-small);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.addBlockButton:hover {
+  background-color: var(--primary-button-hover);
 }
 
 .chatHeader {
