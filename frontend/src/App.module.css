@@ -56,11 +56,11 @@ body {
 .sidebar {
   width: var(--sidebar-width);
   background-color: var(--sidebar-bg);
-  padding: var(--padding-large);
+  padding: var(--padding-medium) var(--padding-large);
   box-sizing: border-box;
   overflow-y: auto;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-  transition: width 0.3s ease-in-out;
+  transition: all 0.3s ease-in-out;
 }
 
 .sidebarOpen {
@@ -69,7 +69,7 @@ body {
 
 .sidebarClosed {
   width: 0;
-  padding: 0;
+  padding: var(--padding-medium) 0;
   overflow: hidden;
 }
 
@@ -88,6 +88,7 @@ body {
   flex-grow: 1;
   overflow: hidden;
   position: relative;
+  justify-content: center;  /* Add this line to center the chat column */
 }
 
 .chatColumn {
@@ -98,6 +99,9 @@ body {
   overflow-y: hidden;
   position: relative;
   height: 100%;
+  max-width: 1000px;  /* Add this line */
+  margin: 0 auto;     /* Add this line to center the chat area */
+  width: 100%;        /* Add this line to ensure it takes full width up to max-width */
 }
 
 .contextBlocksColumn {
@@ -108,7 +112,6 @@ body {
   overflow-y: auto;
   padding: 0 var(--padding-medium);
   transition: width 0.3s ease-in-out, min-width 0.3s ease-in-out, opacity 0.3s ease-in-out;
-  position: relative;
 }
 
 .contextBlocksColumn.closed {
@@ -180,6 +183,9 @@ body {
   cursor: pointer;
   transition: all var(--transition-speed);
   background-color: var(--surface-color);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .projectItem:hover {
@@ -192,12 +198,25 @@ body {
   color: white;
 }
 
+.projectItem svg {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+}
+
+.projectItemName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .addProjectButton {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-top: var(--padding-large);
+  white-space: nowrap;
 }
 
 .addProjectButton:hover {

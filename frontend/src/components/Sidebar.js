@@ -12,7 +12,8 @@ function Sidebar({ projects, selectedProject, onProjectSelect, onAddProject, isO
           className={`${styles.projectItem} ${project.id === selectedProject ? styles.selected : ''}`}
           onClick={() => onProjectSelect(project.id)}
         >
-          <FaCube /> {project.name}
+          <FaCube /> 
+          <span className={styles.projectItemName}>{project.name}</span>
         </div>
       ))}
       <button className={`${styles.button} ${styles.secondaryButton} ${styles.addProjectButton}`} onClick={onAddProject}>
