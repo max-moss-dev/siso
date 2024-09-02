@@ -1,12 +1,15 @@
 import React, { useRef, useEffect } from 'react';
-import styles from '../App.module.css';
-import { FaPaperPlane, FaUser, FaRobot } from 'react-icons/fa';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { FaUser, FaRobot, FaPaperPlane } from 'react-icons/fa';
+import { MentionsInput, Mention } from 'react-mentions';
+import styles from '../App.module.css';
+import { mentionsInputStyle, mentionStyle } from '../MentionsInputStyle';
 
-function ChatArea({ chatHistory, message, setMessage, onSendMessage }) {
+function ChatArea({ chatHistory, message, setMessage, onSendMessage, contextBlocks, onMentionInChat }) {
   const chatHistoryRef = useRef(null);
+  const suggestionsPortalRef = useRef(null);
 
   useEffect(() => {
     if (chatHistoryRef.current) {
@@ -17,6 +20,17 @@ function ChatArea({ chatHistory, message, setMessage, onSendMessage }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     onSendMessage();
+  };
+
+  const handleInputChange = (event, newValue, newPlainTextValue) => {
+    setMessage(newPlainTextValue);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
   };
 
   const renderers = {
@@ -68,14 +82,27 @@ function ChatArea({ chatHistory, message, setMessage, onSendMessage }) {
           </div>
         ))}
       </div>
+      <div className={styles.suggestionsPortal} ref={suggestionsPortalRef}></div>
       <form onSubmit={handleSubmit} className={styles.inputSection}>
-        <input
-          type="text"
+        <MentionsInput
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
           placeholder="Type your message..."
-          className={styles.input}
-        />
+          style={mentionsInputStyle}
+          className={styles.mentionsInput}
+          a11ySuggestionsListLabel={"Suggested mentions"}
+          suggestionsPortalHost={suggestionsPortalRef.current}
+          allowSuggestionsAboveCursor={true}
+        >
+          <Mention
+            trigger="@"
+            data={contextBlocks.map(block => ({ id: block.id, display: block.title }))}
+            style={mentionStyle}
+            appendSpaceOnAdd={true}
+            displayTransform={(id, display) => `'${display}'`}
+          />
+        </MentionsInput>
         <button type="submit" className={styles.sendButton}>
           <FaPaperPlane />
         </button>

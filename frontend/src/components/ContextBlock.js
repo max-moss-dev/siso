@@ -1,10 +1,10 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { diffWords } from 'diff';
-import { FaWrench, FaCheck, FaTimes, FaExchangeAlt, FaTrash, FaChevronDown, FaEdit, FaArrowUp, FaArrowDown, FaMagic } from 'react-icons/fa';
+import { FaWrench, FaCheck, FaTimes, FaExchangeAlt, FaTrash, FaChevronDown, FaEdit, FaArrowUp, FaArrowDown, FaMagic, FaCommentDots } from 'react-icons/fa';
 import styles from '../App.module.css';
 
-function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixContent, onMoveUp, onMoveDown, isFirst, isLast }) {
+function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixContent, onMoveUp, onMoveDown, isFirst, isLast, onMentionInChat }) {
   const textareaRef = useRef(null);
   const [localContent, setLocalContent] = useState(block.content);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -124,6 +124,10 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
     setIsEditingTitle(false);
   };
 
+  const handleMentionInChat = () => {
+    onMentionInChat(block.id, block.title);
+  };
+
   return (
     <div className={`${styles.contextBlock} ${pendingContent ? styles.pendingChanges : ''}`}>
       <div className={styles.contextBlockHeader} onClick={toggleCollapse}>
@@ -212,6 +216,9 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
         )}
         {!pendingContent && (
           <div className={styles.blockButtons}>
+            <button onClick={handleMentionInChat} className={`${styles.button} ${styles.secondaryButton}`}>
+              <FaCommentDots /> Mention in Chat
+            </button>
             <button onClick={() => onDelete(block.id)} className={`${styles.button} ${styles.dangerButton}`}>
               <FaTrash /> Delete
             </button>

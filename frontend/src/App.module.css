@@ -286,7 +286,7 @@ body {
 .chatContainer {
   display: flex;
   flex-direction: column;
-  height: 100%; /* Ensure the container takes full height */
+  height: 100%;
 }
 
 .chatHistory {
@@ -332,6 +332,26 @@ body {
   align-self: flex-start;
 }
 
+.messageHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--padding-small);
+}
+
+.messageIcon {
+  margin-right: var(--padding-small);
+  font-size: 1.2em;
+}
+
+.messageLabel {
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.messageContent {
+  word-wrap: break-word;
+}
+
 .inputSection {
   display: flex;
   background-color: var(--background-color);
@@ -344,15 +364,6 @@ body {
   left: var(--padding-medium);
   right: var(--padding-medium);
   z-index: 10;
-}
-
-.input {
-  flex-grow: 1;
-  padding: var(--padding-medium);
-  border: none;
-  font-size: var(--font-size-normal);
-  background-color: transparent;
-  color: var(--text-color);
 }
 
 .sendButton {
@@ -371,7 +382,6 @@ body {
   background-color: var(--primary-button-hover);
 }
 
-/* Add this new style for the icon */
 .sendButton svg {
   width: 20px;
   height: 20px;
@@ -538,7 +548,6 @@ body {
   resize: vertical;
 }
 
-/* Add these new styles */
 .comparisonView {
   margin-bottom: var(--padding-medium);
 }
@@ -626,7 +635,6 @@ body {
   transform: scaleX(-1);
 }
 
-/* Add new styles for collapsible context blocks */
 .contextBlockHeader {
   display: flex;
   justify-content: space-between;
@@ -654,7 +662,6 @@ body {
   transform: rotate(-90deg);
 }
 
-/* Add these new styles */
 .dragHandle {
   cursor: move;
   padding: 8px;
@@ -664,7 +671,6 @@ body {
   text-align: center;
   border-radius: var(--border-radius-small) var(--border-radius-small) 0 0;
 }
-
 
 .noBlocksMessage {
   padding: var(--padding-medium);
@@ -771,50 +777,22 @@ body {
   padding: var(--padding-small) var(--padding-medium);
 }
 
-/* Add these new styles */
-.messageHeader {
-  display: flex;
-  align-items: center;
-  margin-bottom: var(--padding-small);
-}
-
-.messageIcon {
-  margin-right: var(--padding-small);
-  font-size: 1.2em;
-}
-
-.messageLabel {
-  font-weight: bold;
-  font-size: 0.9em;
-}
-
-.messageContent {
-  word-wrap: break-word;
-}
-
-/* Update these existing styles */
-.message {
-  padding: var(--padding-medium);
-  margin-bottom: var(--padding-medium);
-  border-radius: var(--border-radius-medium);
-  max-width: 75%;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+.mentionsInput {
+  width: 100%;
   font-size: var(--font-size-normal);
-}
-
-.userMessage {
-  background-color: var(--accent-color);
-  color: white;
-  align-self: flex-end;
-  margin-left: auto;
-}
-
-.aiMessage {
-  background-color: var(--surface-color);
+  background-color: transparent;
   color: var(--text-color);
-  align-self: flex-start;
+  padding: var(--padding-small);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
 }
+
+
+
+.suggestionsPortal {
+  z-index: 11;
+}
+
 
 /* Add styles for markdown content */
 .messageContent p {

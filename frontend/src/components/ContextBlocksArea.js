@@ -1,9 +1,9 @@
 import React from 'react';
-import styles from '../App.module.css';
 import ContextBlock from './ContextBlock';
+import styles from '../App.module.css';
 import { FaPlus } from 'react-icons/fa';
 
-function ContextBlocksArea({ contextBlocks, isLoading, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, onReorderBlocks, onAddBlock }) {
+function ContextBlocksArea({ contextBlocks, isLoading, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, onReorderBlocks, onAddBlock, onMentionInChat }) {
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -28,24 +28,21 @@ function ContextBlocksArea({ contextBlocks, isLoading, onUpdateBlock, onDeleteBl
 
   return (
     <div className={styles.contextBlocksContainer}>
-      {contextBlocks.length > 0 ? (
-        contextBlocks.map((block, index) => (
-          <ContextBlock
-            key={block.id}
-            block={block}
-            onUpdate={onUpdateBlock}
-            onDelete={onDeleteBlock}
-            onGenerateContent={onGenerateContent}
-            onFixContent={onFixContent}
-            onMoveUp={moveBlockUp}
-            onMoveDown={moveBlockDown}
-            isFirst={index === 0}
-            isLast={index === contextBlocks.length - 1}
-          />
-        ))
-      ) : (
-        <div className={styles.noBlocksMessage}>No context blocks available. Add a new block to get started.</div>
-      )}
+      {contextBlocks.map((block, index) => (
+        <ContextBlock
+          key={block.id}
+          block={block}
+          onUpdate={onUpdateBlock}
+          onDelete={onDeleteBlock}
+          onGenerateContent={onGenerateContent}
+          onFixContent={onFixContent}
+          onMoveUp={() => moveBlockUp(block.id)}
+          onMoveDown={() => moveBlockDown(block.id)}
+          isFirst={index === 0}
+          isLast={index === contextBlocks.length - 1}
+          onMentionInChat={onMentionInChat}
+        />
+      ))}
       <button 
         onClick={onAddBlock} 
         className={`${styles.button} ${styles.secondaryButton} ${styles.addBlockButton}`}

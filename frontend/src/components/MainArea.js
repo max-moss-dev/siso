@@ -32,6 +32,10 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
     setIsContextSidebarOpen(!isContextSidebarOpen);
   };
 
+  const handleMentionInChat = (blockId, blockTitle) => {
+    setMessage(prevMessage => `${prevMessage} '${blockTitle}' `);
+  };
+
   return (
     <div className={styles.mainContent}>
       <div className={styles.projectHeader}>
@@ -103,6 +107,8 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
             message={message}
             setMessage={setMessage}
             onSendMessage={onSendMessage}
+            contextBlocks={contextBlocks}
+            onMentionInChat={handleMentionInChat}
           />
         </div>
         <div className={`${styles.contextBlocksColumn} ${isContextSidebarOpen ? '' : styles.closed}`}>
@@ -116,6 +122,7 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
             onFixContent={onFixContent}
             onReorderBlocks={onReorderBlocks}
             onAddBlock={onAddBlock}
+            onMentionInChat={handleMentionInChat}
           />
         </div>
       </div>
