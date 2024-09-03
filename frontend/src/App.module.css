@@ -885,3 +885,36 @@ button.toggleContextSidebarButton {
   border-radius: 0 0 4px 4px;
   margin-bottom: 10px;
 }
+
+.batchUpdateButtons {
+  display: flex;
+  justify-content: space-between;
+  margin: var(--padding-medium) 0;
+  padding: var(--padding-medium);
+  background-color: var(--surface-color);
+  border-radius: var(--border-radius-medium);
+  box-shadow: var(--box-shadow);
+}
+
+.batchUpdateButtons button {
+  flex: 1;
+  margin: 0 var(--padding-small);
+}
+
+.batchUpdateButtons button:first-child {
+  margin-left: 0;
+}
+
+.batchUpdateButtons button:last-child {
+  margin-right: 0;
+}
+
+.pendingUpdatesNotification {
+  margin-bottom: var(--padding-medium);
+  padding: var(--padding-small) var(--padding-medium);
+  background-color: var(--accent-color);
+  color: var(--text-color);
+  border-radius: var(--border-radius-small);
+  font-weight: bold;
+  text-align: center;
+}

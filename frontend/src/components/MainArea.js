@@ -5,7 +5,7 @@ import ChatArea from './ChatArea';
 import { FaEdit, FaTrash, FaEraser } from 'react-icons/fa';
 import ContextSidebarIcon from './ContextSidebarIcon';
 
-function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, chatHistory, message, setMessage, onSendMessage, onUpdateProject, onDeleteProject, toggleSidebar, isSidebarOpen, onReorderBlocks, onClearChatHistory, isClearingChat }) {
+function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, chatHistory, message, setMessage, onSendMessage, onUpdateProject, onDeleteProject, toggleSidebar, isSidebarOpen, onReorderBlocks, onClearChatHistory, isClearingChat, onUndo, onRedo, canUndo, canRedo, onAcceptAllChanges, onRejectAllChanges }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(projectName);
   const [canEdit, setCanEdit] = useState(true);
@@ -35,6 +35,8 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
   const handleMentionInChat = (blockId, blockTitle) => {
     setMessage(prevMessage => `${prevMessage} '${blockTitle}' `);
   };
+
+  const pendingUpdatesCount = contextBlocks.filter(block => block.pendingContent).length;
 
   return (
     <div className={styles.mainContent}>
@@ -113,6 +115,21 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
         </div>
         <div className={`${styles.contextBlocksColumn} ${isContextSidebarOpen ? '' : styles.closed}`}>
           <h2 className={styles.contextBlocksTitle}>Context Blocks</h2>
+          {pendingUpdatesCount > 0 && (
+            <>
+              <div className={styles.batchUpdateButtons}>
+                <button onClick={onAcceptAllChanges} className={`${styles.button} ${styles.primaryButton}`}>
+                  Accept All Changes
+                </button>
+                <button onClick={onRejectAllChanges} className={`${styles.button} ${styles.secondaryButton}`}>
+                  Reject All Changes
+                </button>
+              </div>
+              <div className={styles.pendingUpdatesNotification}>
+                {pendingUpdatesCount} block{pendingUpdatesCount !== 1 ? 's' : ''} with pending updates
+              </div>
+            </>
+          )}
           <ContextBlocksArea 
             contextBlocks={contextBlocks}
             isLoading={isLoading}
@@ -126,6 +143,16 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
           />
         </div>
       </div>
+      {canUndo && canRedo && (
+        <div className={styles.undoRedoButtons}>
+          <button onClick={onUndo} disabled={!canUndo} className={`${styles.button} ${styles.secondaryButton}`}>
+            Undo
+          </button>
+          <button onClick={onRedo} disabled={!canRedo} className={`${styles.button} ${styles.secondaryButton}`}>
+            Redo
+          </button>
+        </div>
+      )}
     </div>
   );
 }

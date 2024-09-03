@@ -53,6 +53,23 @@ function ChatArea({ chatHistory, message, setMessage, onSendMessage, contextBloc
     }
   };
 
+  const renderContextUpdateSummary = (contextUpdates) => {
+    if (!contextUpdates || contextUpdates.length === 0) return null;
+  
+    return (
+      <div className={styles.contextUpdateSummary}>
+        <h4>Context Updates:</h4>
+        <ul>
+          {contextUpdates.map((update, index) => (
+            <li key={index}>
+              {update.block_title}: Updated
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
   return (
     <div className={styles.chatContainer}>
       <div className={styles.chatHistory} ref={chatHistoryRef}>
@@ -79,6 +96,7 @@ function ChatArea({ chatHistory, message, setMessage, onSendMessage, contextBloc
             <div className={styles.messageContent}>
               <ReactMarkdown components={renderers}>{msg.content}</ReactMarkdown>
             </div>
+            {msg.role === 'assistant' && msg.context_updates && renderContextUpdateSummary(msg.context_updates)}
           </div>
         ))}
       </div>

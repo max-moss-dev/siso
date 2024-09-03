@@ -22,6 +22,8 @@ function AppContent() {
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isClearingChat, setIsClearingChat] = useState(false);
+  const [blockHistory, setBlockHistory] = useState([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
 
   const fetchContextBlocks = useCallback(async () => {
     if (!selectedProject) return;
@@ -91,35 +93,36 @@ function AppContent() {
       const response = await axios.post(`${API_URL}/projects/${selectedProject}/chat`, {
         message,
       });
-      const { response: aiResponse, context_update } = response.data;
-      console.log("AI response:", aiResponse);
-      console.log("Context update:", context_update);
+      const { response: aiResponse, context_updates } = response.data;
 
       let updatedAiResponse = aiResponse;
-      if (context_update) {
-        const { block_id, block_title, new_content } = context_update;
-        const blockToUpdate = contextBlocks.find(block => block.id === block_id);
-        if (blockToUpdate) {
-          const updatedBlock = { ...blockToUpdate, pendingContent: new_content };
-          setContextBlocks(contextBlocks.map(block => block.id === block_id ? updatedBlock : block));
-          updatedAiResponse = `I've suggested an update to the "${block_title}" context block. Please review and accept or reject the changes.`;
-        } else {
-          console.error(`Context block with ID ${block_id} not found`);
-          updatedAiResponse = `I tried to update a context block, but couldn't find it. Please check the block IDs.`;
-        }
+      if (context_updates && context_updates.length > 0) {
+        const updatedBlocks = contextBlocks.map(block => {
+          const update = context_updates.find(update => update.block_id === block.id);
+          if (update) {
+            return { ...block, pendingContent: update.new_content };
+          }
+          return block;
+        });
+        setContextBlocks(updatedBlocks);
+        
+        const updateMessages = context_updates.map(update => {
+          const block = contextBlocks.find(b => b.id === update.block_id);
+          return `- "${block.title}": ${update.new_content.substring(0, 50)}...`;
+        });
+        updatedAiResponse = `${aiResponse}\n\nI've suggested updates to the following context blocks:\n${updateMessages.join('\n')}`;
       }
 
-      // Store both the original AI response and the context update information in the chat history
       const aiMessage = { 
         role: 'assistant', 
         content: updatedAiResponse,
         original_content: aiResponse,
-        context_update: context_update 
+        context_updates: context_updates 
       };
       setChatHistory([...chatHistory, newMessage, aiMessage]);
 
-      if (!context_update) {
-        fetchContextBlocks(); // Fetch updated context blocks if no proposed changes
+      if (!context_updates || context_updates.length === 0) {
+        fetchContextBlocks();
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -163,12 +166,26 @@ function AppContent() {
     }
   };
 
-  const handleUpdateBlock = async (blockId, updatedBlock) => {
-    try {
-      await axios.put(`${API_URL}/projects/${selectedProject}/context_blocks/${blockId}`, updatedBlock);
-      setContextBlocks(contextBlocks.map(block => block.id === blockId ? updatedBlock : block));
-    } catch (error) {
-      console.error("Error updating block:", error);
+  const handleUpdateBlock = (blockId, updatedBlock) => {
+    setContextBlocks(prevBlocks => {
+      const newBlocks = prevBlocks.map(block => block.id === blockId ? updatedBlock : block);
+      setBlockHistory(prev => [...prev.slice(0, historyIndex + 1), newBlocks]);
+      setHistoryIndex(prev => prev + 1);
+      return newBlocks;
+    });
+  };
+
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      setHistoryIndex(prev => prev - 1);
+      setContextBlocks(blockHistory[historyIndex - 1]);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < blockHistory.length - 1) {
+      setHistoryIndex(prev => prev + 1);
+      setContextBlocks(blockHistory[historyIndex + 1]);
     }
   };
 
@@ -247,6 +264,26 @@ function AppContent() {
     }
   };
 
+  const handleAcceptAllChanges = () => {
+    const updatedBlocks = contextBlocks.map(block => {
+      if (block.pendingContent) {
+        return { ...block, content: block.pendingContent, pendingContent: null };
+      }
+      return block;
+    });
+    setContextBlocks(updatedBlocks);
+  };
+
+  const handleRejectAllChanges = () => {
+    const updatedBlocks = contextBlocks.map(block => {
+      if (block.pendingContent) {
+        return { ...block, pendingContent: null };
+      }
+      return block;
+    });
+    setContextBlocks(updatedBlocks);
+  };
+
   return (
     <div className={styles.app}>
       <Sidebar 
@@ -277,6 +314,12 @@ function AppContent() {
         toggleSidebar={toggleSidebar}
         isSidebarOpen={isSidebarOpen}
         onReorderBlocks={handleReorderBlocks}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        canUndo={historyIndex > 0}
+        canRedo={historyIndex < blockHistory.length - 1}
+        onAcceptAllChanges={handleAcceptAllChanges}
+        onRejectAllChanges={handleRejectAllChanges}
       />
       {showAddBlockModal && <AddBlockModal onAddBlock={handleAddBlock} onClose={() => setShowAddBlockModal(false)} />}
       {showAddProjectModal && <AddProjectModal onAddProject={handleAddProject} onClose={() => setShowAddProjectModal(false)} />}

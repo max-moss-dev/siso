@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { diffWords } from 'diff';
+import { diffWords, diffLines } from 'diff';
 import { FaWrench, FaCheck, FaTimes, FaExchangeAlt, FaTrash, FaChevronDown, FaEdit, FaArrowUp, FaArrowDown, FaMagic, FaCommentDots } from 'react-icons/fa';
 import styles from '../App.module.css';
 
@@ -26,7 +26,10 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
   useEffect(() => {
     setPendingContent(block.pendingContent);
     if (block.pendingContent) {
-      setIsCollapsed(false); // Open the block when there are pending changes
+      setIsCollapsed(false);
+      setShowComparison(true);
+    } else {
+      setShowComparison(false);
     }
   }, [block.pendingContent]);
 
@@ -53,7 +56,7 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
         if (showComparison) {
           setPendingContent(newContent);
           setShowComparison(true);
-          setIsCollapsed(false); // Open the block when there are suggested changes
+          setIsCollapsed(false);
         } else {
           handleUpdate('content', newContent);
           setLocalContent(newContent);
@@ -78,12 +81,14 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
     if (pendingContent) {
       handleUpdate('content', pendingContent);
       setLocalContent(pendingContent);
+      handleUpdate('pendingContent', null);
     }
     setPendingContent(null);
     setShowComparison(false);
   };
 
   const handleReject = () => {
+    handleUpdate('pendingContent', null);
     setPendingContent(null);
     setShowComparison(false);
   };
@@ -95,15 +100,15 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
       return <span>Unable to display diff. Invalid new content.</span>;
     }
 
-    const diff = diffWords(oldContent, newContent);
-    return diff.map((part, index) => {
-      if (part.added) {
-        return <span key={index} className={styles.added}>{part.value}</span>;
-      }
-      if (part.removed) {
-        return <span key={index} className={styles.removed}>{part.value}</span>;
-      }
-      return <span key={index}>{part.value}</span>;
+    const diffs = diffLines(oldContent, newContent);
+    return diffs.map((part, index) => {
+      const color = part.added ? 'green' : part.removed ? 'red' : 'grey';
+      const backgroundColor = part.added ? '#e6ffec' : part.removed ? '#ffebe9' : 'transparent';
+      return (
+        <span key={index} style={{ color, backgroundColor }}>
+          {part.value}
+        </span>
+      );
     });
   };
 
@@ -165,7 +170,7 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
         </div>
       </div>
       <div className={`${styles.contextBlockContent} ${isCollapsed ? styles.collapsed : ''}`}>
-        {pendingContent ? (
+        {showComparison ? (
           <div className={styles.comparisonView}>
             <h4>Suggested Changes for "{block.title}"</h4>
             <pre className={styles.diffContent}>{renderDiff(localContent, pendingContent)}</pre>
@@ -178,41 +183,43 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
               </button>
             </div>
           </div>
-        ) : block.type === 'text' ? (
-          isEditing ? (
-            <textarea
-              ref={textareaRef}
-              value={localContent}
-              onChange={handleTextareaChange}
-              placeholder="Block content"
-              className={styles.contentTextarea}
-            />
-          ) : (
-            <div 
-              className={styles.markdownContent} 
-              onClick={() => setIsEditing(true)}
-            >
-              <ReactMarkdown>{localContent}</ReactMarkdown>
-            </div>
-          )
         ) : (
-          <ul>
-            {Array.isArray(block.content) ? block.content.map((item, index) => (
-              <li key={index}>
-                <input
-                  value={item}
-                  onChange={(e) => {
-                    const newContent = [...block.content];
-                    newContent[index] = e.target.value;
-                    handleUpdate('content', newContent);
-                  }}
-                />
-              </li>
-            )) : null}
-            <button onClick={() => handleUpdate('content', [...(Array.isArray(block.content) ? block.content : []), ''])}>
-              Add item
-            </button>
-          </ul>
+          block.type === 'text' ? (
+            isEditing ? (
+              <textarea
+                ref={textareaRef}
+                value={localContent}
+                onChange={handleTextareaChange}
+                placeholder="Block content"
+                className={styles.contentTextarea}
+              />
+            ) : (
+              <div 
+                className={styles.markdownContent} 
+                onClick={() => setIsEditing(true)}
+              >
+                <ReactMarkdown>{localContent}</ReactMarkdown>
+              </div>
+            )
+          ) : (
+            <ul>
+              {Array.isArray(block.content) ? block.content.map((item, index) => (
+                <li key={index}>
+                  <input
+                    value={item}
+                    onChange={(e) => {
+                      const newContent = [...block.content];
+                      newContent[index] = e.target.value;
+                      handleUpdate('content', newContent);
+                    }}
+                  />
+                </li>
+              )) : null}
+              <button onClick={() => handleUpdate('content', [...(Array.isArray(block.content) ? block.content : []), ''])}>
+                Add item
+              </button>
+            </ul>
+          )
         )}
         {!pendingContent && (
           <div className={styles.blockButtons}>
