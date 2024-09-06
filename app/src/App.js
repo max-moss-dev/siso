@@ -116,7 +116,6 @@ function AppContent() {
       const aiMessage = { 
         role: 'assistant', 
         content: updatedAiResponse,
-        original_content: aiResponse,
         context_updates: context_updates 
       };
       setChatHistory([...chatHistory, newMessage, aiMessage]);
@@ -166,13 +165,24 @@ function AppContent() {
     }
   };
 
-  const handleUpdateBlock = (blockId, updatedBlock) => {
-    setContextBlocks(prevBlocks => {
-      const newBlocks = prevBlocks.map(block => block.id === blockId ? updatedBlock : block);
-      setBlockHistory(prev => [...prev.slice(0, historyIndex + 1), newBlocks]);
-      setHistoryIndex(prev => prev + 1);
-      return newBlocks;
-    });
+  const handleUpdateBlock = async (blockId, updatedBlock) => {
+    try {
+      // Update the backend first
+      await axios.put(`${API_URL}/projects/${selectedProject}/context_blocks/${blockId}`, updatedBlock);
+
+      // If the backend update is successful, update the local state
+      setContextBlocks(prevBlocks => {
+        const newBlocks = prevBlocks.map(block => 
+          block.id === blockId ? { ...block, ...updatedBlock } : block
+        );
+        setBlockHistory(prev => [...prev.slice(0, historyIndex + 1), newBlocks]);
+        setHistoryIndex(prev => prev + 1);
+        return newBlocks;
+      });
+    } catch (error) {
+      console.error("Error updating block:", error);
+      // Optionally, show an error message to the user
+    }
   };
 
   const handleUndo = () => {
@@ -264,14 +274,40 @@ function AppContent() {
     }
   };
 
-  const handleAcceptAllChanges = () => {
-    const updatedBlocks = contextBlocks.map(block => {
-      if (block.pendingContent) {
-        return { ...block, content: block.pendingContent, pendingContent: null };
+  const handleAcceptAllChanges = async () => {
+    try {
+      const updatedBlocks = [];
+      
+      // Update each changed block in the backend
+      for (const block of contextBlocks) {
+        if (block.pendingContent) {
+          const updatedBlock = { 
+            ...block, 
+            content: block.pendingContent, 
+            pendingContent: null  // Clear pendingContent
+          };
+          
+          // Update in the backend
+          await axios.put(`${API_URL}/projects/${selectedProject}/context_blocks/${block.id}`, {
+            title: updatedBlock.title,
+            content: updatedBlock.content,
+            type: updatedBlock.type
+          });
+          
+          updatedBlocks.push(updatedBlock);
+        } else {
+          updatedBlocks.push(block);
+        }
       }
-      return block;
-    });
-    setContextBlocks(updatedBlocks);
+
+      // If all backend updates are successful, update the local state
+      setContextBlocks(updatedBlocks);
+      setBlockHistory(prev => [...prev.slice(0, historyIndex + 1), updatedBlocks]);
+      setHistoryIndex(prev => prev + 1);
+    } catch (error) {
+      console.error("Error accepting all changes:", error);
+      // Optionally, show an error message to the user
+    }
   };
 
   const handleRejectAllChanges = () => {

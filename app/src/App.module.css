@@ -799,6 +799,41 @@ body {
   margin: 0 0 var(--padding-small) 0;
 }
 
+.contextUpdateSummary {
+  margin-top: var(--padding-medium);
+  background-color: var(--background-color);
+  border-radius: var(--border-radius-medium);
+  overflow: hidden;
+}
+
+.contextUpdateItem {
+  padding: var(--padding-small);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.contextUpdateItem:last-child {
+  border-bottom: none;
+}
+
+.contextUpdateLabel {
+  display: block;
+  font-weight: bold;
+  color: var(--text-secondary);
+  margin-bottom: var(--padding-small);
+}
+
+.updatePreview {
+  display: block;
+  background-color: var(--surface-color);
+  padding: var(--padding-small);
+  border-radius: var(--border-radius-small);
+  font-family: monospace;
+  font-size: 0.9em;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--text-color);
+}
+
 .messageContent p:last-child {
   margin-bottom: 0;
 }
@@ -917,4 +952,39 @@ button.toggleContextSidebarButton {
   border-radius: var(--border-radius-small);
   font-weight: bold;
   text-align: center;
+}
+
+.contextUpdateSummary {
+  margin-top: var(--padding-medium);
+  background-color: var(--background-color);
+  border-radius: var(--border-radius-medium);
+  overflow: hidden;
+}
+
+.contextUpdateItem {
+  padding: var(--padding-small);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.contextUpdateItem:last-child {
+  border-bottom: none;
+}
+
+.contextUpdateLabel {
+  display: block;
+  font-weight: bold;
+  color: var(--text-secondary);
+  margin-bottom: var(--padding-small);
+}
+
+.updatePreview {
+  display: block;
+  background-color: var(--surface-color);
+  padding: var(--padding-small);
+  border-radius: var(--border-radius-small);
+  font-family: monospace;
+  font-size: 0.9em;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--text-color);
 }

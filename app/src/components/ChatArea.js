@@ -58,14 +58,15 @@ function ChatArea({ chatHistory, message, setMessage, onSendMessage, contextBloc
   
     return (
       <div className={styles.contextUpdateSummary}>
-        <h4>Context Updates:</h4>
-        <ul>
-          {contextUpdates.map((update, index) => (
-            <li key={index}>
-              {update.block_title}: Updated
-            </li>
-          ))}
-        </ul>
+        {contextUpdates.map((update, index) => (
+          <div key={index} className={styles.contextUpdateItem}>
+            <span className={styles.contextUpdateLabel}>{update.block_title}</span>
+            <code className={styles.updatePreview}>
+              {update.new_content.substring(0, 100)}
+              {update.new_content.length > 100 ? '...' : ''}
+            </code>
+          </div>
+        ))}
       </div>
     );
   };

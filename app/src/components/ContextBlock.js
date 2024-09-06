@@ -1,31 +1,31 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { diffWords, diffLines } from 'diff';
+import { diffLines } from 'diff';
 import { FaWrench, FaCheck, FaTimes, FaExchangeAlt, FaTrash, FaChevronDown, FaEdit, FaArrowUp, FaArrowDown, FaMagic, FaCommentDots } from 'react-icons/fa';
 import styles from '../App.module.css';
 
 function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixContent, onMoveUp, onMoveDown, isFirst, isLast, onMentionInChat }) {
   const textareaRef = useRef(null);
-  const [localContent, setLocalContent] = useState(block.content);
+  const [content, setContent] = useState(block.content);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isFixing, setIsFixing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [pendingContent, setPendingContent] = useState(block.pendingContent);
+  const [suggestedContent, setSuggestedContent] = useState(null);
 
   const handleUpdate = useCallback((field, value) => {
     onUpdate(block.id, { ...block, [field]: value });
   }, [block, onUpdate]);
 
   useEffect(() => {
-    setLocalContent(block.content);
+    setContent(block.content);
   }, [block.content]);
 
   useEffect(() => {
-    setPendingContent(block.pendingContent);
     if (block.pendingContent) {
+      setSuggestedContent(block.pendingContent);
       setIsCollapsed(false);
       setShowComparison(true);
     } else {
@@ -33,20 +33,11 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
     }
   }, [block.pendingContent]);
 
-  const handleTextareaChange = (e) => {
+  const handleContentChange = (e) => {
     const value = e.target.value;
-    setLocalContent(value);
+    setContent(value);
+    handleUpdate('content', value);
   };
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (localContent !== block.content && !showComparison) {
-        handleUpdate('content', localContent);
-      }
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [localContent, block.content, handleUpdate, showComparison]);
 
   const handleNewContent = async (getContent, setLoadingState, showComparison = false) => {
     setLoadingState(true);
@@ -54,12 +45,12 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
       const newContent = await getContent();
       if (newContent && typeof newContent === 'string') {
         if (showComparison) {
-          setPendingContent(newContent);
+          setSuggestedContent(newContent);
           setShowComparison(true);
           setIsCollapsed(false);
         } else {
+          setContent(newContent);
           handleUpdate('content', newContent);
-          setLocalContent(newContent);
         }
       } else {
         console.error("Invalid content received:", newContent);
@@ -71,25 +62,36 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
     }
   };
 
-  const handleFix = () => handleNewContent(() => onFixContent(block.id, localContent), setIsFixing, true);
+  const handleFix = () => handleNewContent(() => onFixContent(block.id, content), setIsFixing, true);
 
   const handleGenerate = () => handleNewContent(() => onGenerateContent(block.id, ''), setIsGenerating);
 
-  const handleImprove = () => handleNewContent(() => onGenerateContent(block.id, localContent), setIsGenerating, true);
+  const handleImprove = () => handleNewContent(() => onGenerateContent(block.id, content), setIsGenerating, true);
 
-  const handleAccept = () => {
-    if (pendingContent) {
-      handleUpdate('content', pendingContent);
-      setLocalContent(pendingContent);
-      handleUpdate('pendingContent', null);
+  const handleAccept = async () => {
+    if (suggestedContent) {
+      try {
+        // Update the backend
+        await onUpdate(block.id, { 
+          ...block, 
+          content: suggestedContent, 
+          pendingContent: null 
+        });
+        
+        // Update local state
+        setContent(suggestedContent);
+        setSuggestedContent(null);
+        setShowComparison(false);
+      } catch (error) {
+        console.error("Error accepting changes:", error);
+        // Optionally, show an error message to the user
+      }
     }
-    setPendingContent(null);
-    setShowComparison(false);
   };
 
   const handleReject = () => {
     handleUpdate('pendingContent', null);
-    setPendingContent(null);
+    setSuggestedContent(null);
     setShowComparison(false);
   };
 
@@ -134,7 +136,7 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
   };
 
   return (
-    <div className={`${styles.contextBlock} ${pendingContent ? styles.pendingChanges : ''}`}>
+    <div className={`${styles.contextBlock} ${block.pendingContent ? styles.pendingChanges : ''}`}>
       <div className={styles.contextBlockHeader} onClick={toggleCollapse}>
         <button onClick={handleTitleEdit} className={styles.editTitleButton}>
           <FaEdit />
@@ -173,7 +175,7 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
         {showComparison ? (
           <div className={styles.comparisonView}>
             <h4>Suggested Changes for "{block.title}"</h4>
-            <pre className={styles.diffContent}>{renderDiff(localContent, pendingContent)}</pre>
+            <pre className={styles.diffContent}>{renderDiff(content, suggestedContent)}</pre>
             <div className={styles.blockButtons}>
               <button onClick={handleAccept} className={`${styles.button} ${styles.primaryButton}`}>
                 <FaCheck /> Accept
@@ -188,8 +190,8 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
             isEditing ? (
               <textarea
                 ref={textareaRef}
-                value={localContent}
-                onChange={handleTextareaChange}
+                value={content}
+                onChange={handleContentChange}
                 placeholder="Block content"
                 className={styles.contentTextarea}
               />
@@ -198,7 +200,7 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
                 className={styles.markdownContent} 
                 onClick={() => setIsEditing(true)}
               >
-                <ReactMarkdown>{localContent}</ReactMarkdown>
+                <ReactMarkdown>{content}</ReactMarkdown>
               </div>
             )
           ) : (
@@ -221,7 +223,7 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
             </ul>
           )
         )}
-        {!pendingContent && (
+        {!suggestedContent && (
           <div className={styles.blockButtons}>
             <button onClick={handleMentionInChat} className={`${styles.button} ${styles.secondaryButton}`}>
               <FaCommentDots /> Mention in Chat
@@ -229,7 +231,7 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
             <button onClick={() => onDelete(block.id)} className={`${styles.button} ${styles.dangerButton}`}>
               <FaTrash /> Delete
             </button>
-            {localContent ? (
+            {content ? (
               <>
                 <button 
                   onClick={handleFix} 
