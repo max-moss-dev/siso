@@ -1,9 +1,9 @@
-- Не зберігається контекст
 - При перезавантаженні повідмлення про оновлений контекст зломане
-- Зміна розміру правого сайдбару
-- При перезавантаженні сайдбари завжди активні - зберігання статусу вікдритий закритий (на фронті)
+-> Зміна розміру правого сайдбару
 
 - Optimise python script
+
+- Github integration
 
 - Chat component
 --> Better updated context block mention
@@ -15,7 +15,7 @@
 -- Add context revisions amount
 -- DB viewer
 
-- Variations for each context blocks
+- Variations for each context blocks (later)
 -- Can be different type of context block
 -- Text line about how is this variation different from the basic one
 
@@ -27,8 +27,7 @@
 -- Edit markdown
 -- clear content of block
 -- open in big view
--- Revisions
--- More context types
+-- More context types (text, code)
 
 - Refine
 -- Fix dependencies

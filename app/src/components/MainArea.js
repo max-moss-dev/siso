@@ -5,15 +5,53 @@ import ChatArea from './ChatArea';
 import { FaEdit, FaTrash, FaEraser } from 'react-icons/fa';
 import ContextSidebarIcon from './ContextSidebarIcon';
 
-function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, chatHistory, message, setMessage, onSendMessage, onUpdateProject, onDeleteProject, toggleSidebar, isSidebarOpen, onReorderBlocks, onClearChatHistory, isClearingChat, onUndo, onRedo, canUndo, canRedo, onAcceptAllChanges, onRejectAllChanges }) {
+function MainArea({ 
+  projectName, 
+  projectId, 
+  contextBlocks, 
+  isLoading, 
+  onAddBlock, 
+  onUpdateBlock, 
+  onDeleteBlock, 
+  onGenerateContent, 
+  onFixContent, 
+  chatHistory, 
+  message, 
+  setMessage, 
+  onSendMessage, 
+  onUpdateProject, 
+  onDeleteProject, 
+  toggleSidebar, 
+  isSidebarOpen, 
+  toggleContextSidebar, 
+  isContextSidebarOpen, 
+  setIsContextSidebarOpen,
+  onReorderBlocks, 
+  onClearChatHistory, 
+  isClearingChat, 
+  onUndo, 
+  onRedo, 
+  canUndo, 
+  canRedo, 
+  onAcceptAllChanges, 
+  onRejectAllChanges 
+}) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(projectName);
   const [canEdit, setCanEdit] = useState(true);
-  const [isContextSidebarOpen, setIsContextSidebarOpen] = useState(true);
 
   useEffect(() => {
     setEditedName(projectName);
   }, [projectName]);
+
+  const pendingUpdatesCount = contextBlocks.filter(block => block.pendingContent).length;
+
+  // Add this useEffect to open the sidebar when there are pending updates
+  useEffect(() => {
+    if (pendingUpdatesCount > 0 && !isContextSidebarOpen) {
+      setIsContextSidebarOpen(true);
+    }
+  }, [pendingUpdatesCount, isContextSidebarOpen, setIsContextSidebarOpen]);
 
   const handleEditSave = () => {
     onUpdateProject(projectId, editedName);
@@ -28,15 +66,9 @@ function MainArea({ projectName, projectId, contextBlocks, isLoading, onAddBlock
     }
   };
 
-  const toggleContextSidebar = () => {
-    setIsContextSidebarOpen(!isContextSidebarOpen);
-  };
-
   const handleMentionInChat = (blockId, blockTitle) => {
     setMessage(prevMessage => `${prevMessage} '${blockTitle}' `);
   };
-
-  const pendingUpdatesCount = contextBlocks.filter(block => block.pendingContent).length;
 
   return (
     <div className={styles.mainContent}>

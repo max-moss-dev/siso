@@ -20,7 +20,14 @@ function AppContent() {
   const [showAddProjectModal, setShowAddProjectModal] = useState(false);
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem('isSidebarOpen');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  const [isContextSidebarOpen, setIsContextSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem('isContextSidebarOpen');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
   const [isClearingChat, setIsClearingChat] = useState(false);
   const [blockHistory, setBlockHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -261,7 +268,19 @@ function AppContent() {
   };
 
   const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+    setIsSidebarOpen(prev => {
+      const newState = !prev;
+      localStorage.setItem('isSidebarOpen', JSON.stringify(newState));
+      return newState;
+    });
+  };
+
+  const toggleContextSidebar = () => {
+    setIsContextSidebarOpen(prev => {
+      const newState = !prev;
+      localStorage.setItem('isContextSidebarOpen', JSON.stringify(newState));
+      return newState;
+    });
   };
 
   const handleReorderBlocks = async (reorderedBlocks) => {
@@ -356,6 +375,9 @@ function AppContent() {
         canRedo={historyIndex < blockHistory.length - 1}
         onAcceptAllChanges={handleAcceptAllChanges}
         onRejectAllChanges={handleRejectAllChanges}
+        toggleContextSidebar={toggleContextSidebar}
+        isContextSidebarOpen={isContextSidebarOpen}
+        setIsContextSidebarOpen={setIsContextSidebarOpen}
       />
       {showAddBlockModal && <AddBlockModal onAddBlock={handleAddBlock} onClose={() => setShowAddBlockModal(false)} />}
       {showAddProjectModal && <AddProjectModal onAddProject={handleAddProject} onClose={() => setShowAddProjectModal(false)} />}
