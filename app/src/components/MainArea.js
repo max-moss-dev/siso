@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from '../App.module.css';
 import ContextBlocksArea from './ContextBlocksArea';
 import ChatArea from './ChatArea';
@@ -39,10 +39,20 @@ function MainArea({
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(projectName);
   const [canEdit, setCanEdit] = useState(true);
+  const [contextSidebarWidth, setContextSidebarWidth] = useState(() => {
+    const savedWidth = localStorage.getItem('contextSidebarWidth');
+    return savedWidth ? parseInt(savedWidth, 10) : 400;
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const contextBlocksColumnRef = useRef(null);
 
   useEffect(() => {
     setEditedName(projectName);
   }, [projectName]);
+
+  useEffect(() => {
+    localStorage.setItem('contextSidebarWidth', contextSidebarWidth.toString());
+  }, [contextSidebarWidth]);
 
   const pendingUpdatesCount = contextBlocks.filter(block => block.pendingContent).length;
 
@@ -68,6 +78,36 @@ function MainArea({
 
   const handleMentionInChat = (blockId, blockTitle) => {
     setMessage(prevMessage => `${prevMessage} '${blockTitle}' `);
+  };
+
+  const handleResize = (mouseDownEvent) => {
+    mouseDownEvent.preventDefault();
+    const startX = mouseDownEvent.clientX;
+    const startWidth = contextSidebarWidth;
+
+    setIsDragging(true);
+    if (contextBlocksColumnRef.current) {
+      contextBlocksColumnRef.current.classList.add(styles.dragging);
+    }
+
+    const doDrag = (mouseMoveEvent) => {
+      requestAnimationFrame(() => {
+        const newWidth = startWidth - (mouseMoveEvent.clientX - startX);
+        setContextSidebarWidth(Math.max(400, Math.min(newWidth, 1000)));
+      });
+    };
+
+    const stopDrag = () => {
+      document.removeEventListener('mousemove', doDrag);
+      document.removeEventListener('mouseup', stopDrag);
+      setIsDragging(false);
+      if (contextBlocksColumnRef.current) {
+        contextBlocksColumnRef.current.classList.remove(styles.dragging);
+      }
+    };
+
+    document.addEventListener('mousemove', doDrag);
+    document.addEventListener('mouseup', stopDrag);
   };
 
   return (
@@ -115,7 +155,7 @@ function MainArea({
         )}
       </div>
       <div className={styles.contentContainer}>
-        <div className={styles.chatColumn}>
+        <div className={styles.chatColumn} style={{ flex: 1 }}>
           <div className={styles.chatHeader}>
             <h2>Chat</h2>
             <div className={styles.chatHeaderButtons}>
@@ -145,7 +185,17 @@ function MainArea({
             onMentionInChat={handleMentionInChat}
           />
         </div>
-        <div className={`${styles.contextBlocksColumn} ${isContextSidebarOpen ? '' : styles.closed}`}>
+        {isContextSidebarOpen && (
+          <div 
+            className={styles.resizer} 
+            onMouseDown={handleResize}
+          ></div>
+        )}
+        <div 
+          ref={contextBlocksColumnRef}
+          className={`${styles.contextBlocksColumn} ${isContextSidebarOpen ? '' : styles.contextSidebarClosed} ${isDragging ? styles.dragging : ''}`}
+          style={{ width: isContextSidebarOpen ? `${contextSidebarWidth}px` : '0' }}
+        >
           <h2 className={styles.contextBlocksTitle}>Context Blocks</h2>
           {pendingUpdatesCount > 0 && (
             <>
