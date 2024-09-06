@@ -1,0 +1,41 @@
+.contextUpdateSummary {
+  margin-top: var(--padding-medium);
+}
+
+.contextUpdateButton {
+  display: flex;
+  align-items: center;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  padding: var(--padding-small) var(--padding-medium);
+  color: var(--text-color);
+  font-size: var(--font-size-small);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  text-align: left;
+  margin-bottom: var(--padding-small);
+}
+
+.contextUpdateButton:hover {
+  background-color: var(--accent-color);
+}
+
+.contextUpdateIcon {
+  margin-right: var(--padding-small);
+}
+
+.contextUpdateText {
+  flex-grow: 1;
+}
+
+.contextUpdateTitle {
+  margin: 0;
+  font-weight: bold;
+}
+
+.contextUpdateDescription {
+  margin: 0;
+  font-size: 0.9em;
+  color: var(--text-secondary);
+}

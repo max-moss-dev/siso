@@ -1,6 +1,6 @@
 import React from 'react';
-import { FaInfoCircle } from 'react-icons/fa';
-import styles from '../App.module.css';
+import { MdUpdate } from 'react-icons/md';
+import styles from './ChatContextMention.module.css';
 
 const ChatContextMention = ({ contextUpdates, toggleContextSidebar, setIsContextSidebarOpen, scrollToContextBlock }) => {
   if (!contextUpdates || contextUpdates.length === 0) return null;
@@ -17,8 +17,11 @@ const ChatContextMention = ({ contextUpdates, toggleContextSidebar, setIsContext
             scrollToContextBlock(update.block_id);
           }}
         >
-          <FaInfoCircle className={styles.contextUpdateIcon} />
-          <span>Context update: {update.block_title || 'Untitled Block'}</span>
+          <MdUpdate className={styles.contextUpdateIcon} />
+          <div className={styles.contextUpdateText}>
+            <p className={styles.contextUpdateTitle}>Updated: {update.block_title || 'Untitled Block'}</p>
+            <p className={styles.contextUpdateDescription}>Click to view changes</p>
+          </div>
         </button>
       ))}
     </div>

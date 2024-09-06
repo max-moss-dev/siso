@@ -824,22 +824,6 @@ body {
   margin-right: var(--padding-small);
 }
 
-.contextUpdateItem {
-  padding: var(--padding-small);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.contextUpdateItem:last-child {
-  border-bottom: none;
-}
-
-.contextUpdateLabel {
-  display: block;
-  font-weight: bold;
-  color: var(--text-secondary);
-  margin-bottom: var(--padding-small);
-}
-
 .updatePreview {
   display: block;
   background-color: var(--surface-color);
