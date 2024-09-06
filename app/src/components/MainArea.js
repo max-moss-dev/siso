@@ -22,10 +22,6 @@ function MainArea({
   onUpdateProject, 
   onDeleteProject, 
   toggleSidebar, 
-  isSidebarOpen, 
-  toggleContextSidebar, 
-  isContextSidebarOpen, 
-  setIsContextSidebarOpen,
   onReorderBlocks, 
   onClearChatHistory, 
   isClearingChat, 
@@ -34,7 +30,11 @@ function MainArea({
   canUndo, 
   canRedo, 
   onAcceptAllChanges, 
-  onRejectAllChanges 
+  onRejectAllChanges, 
+  toggleContextSidebar,
+  isContextSidebarOpen,
+  setIsContextSidebarOpen,
+  scrollToContextBlock,
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(projectName);
@@ -182,7 +182,10 @@ function MainArea({
             setMessage={setMessage}
             onSendMessage={onSendMessage}
             contextBlocks={contextBlocks}
-            onMentionInChat={handleMentionInChat}
+            toggleContextSidebar={toggleContextSidebar}
+            setIsContextSidebarOpen={setIsContextSidebarOpen}
+            scrollToContextBlock={scrollToContextBlock}
+            onUpdateBlock={onUpdateBlock}
           />
         </div>
         {isContextSidebarOpen && (

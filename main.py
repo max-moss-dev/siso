@@ -115,6 +115,7 @@ class ReorderBlocksRequest(BaseModel):
 
 class ContextUpdate(BaseModel):
     block_id: str
+    block_title: str
     new_content: str
 
 class ChatResponse(BaseModel):
@@ -259,7 +260,18 @@ Make sure to use the correct block IDs when suggesting updates."""},
     if response.choices[0].message.function_call:
         function_args = json.loads(response.choices[0].message.function_call.arguments)
         bot_message = function_args.get("response", "")
-        context_updates = function_args.get("context_updates", [])
+        raw_context_updates = function_args.get("context_updates", [])
+
+        context_updates = []
+        for update in raw_context_updates:
+            db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == update["block_id"], ContextBlockModel.project_id == project_id).first()
+            if db_block:
+                context_updates.append({
+                    "block_id": db_block.id,
+                    "block_title": db_block.title,
+                    "new_content": update["new_content"]
+                })
+                db_block.pending_content = update["new_content"]
 
     new_user_message = ChatMessageModel(
         id=str(uuid4()),
@@ -287,9 +299,9 @@ def process_context_update(db: Session, project_id: str, block_id: str, new_cont
     if db_block:
         context_update = {
             "block_id": db_block.id,
-            "block_title": db_block.title,
-            "new_content": new_content
+            "block_title": db_block.title
         }
+        db_block.pending_content = new_content
         logger.info("Context update prepared for block '%s'", db_block.title)
         return context_update
     else:
@@ -299,7 +311,7 @@ def process_context_update(db: Session, project_id: str, block_id: str, new_cont
 @app.get("/projects/{project_id}/chat_history")
 async def get_chat_history(project_id: str, db: Session = Depends(get_db)):
     chat_history = db.query(ChatMessageModel).filter(ChatMessageModel.project_id == project_id).order_by(ChatMessageModel.timestamp).all()
-    return [{"role": msg.role, "content": msg.content, "context_update": msg.context_update} for msg in chat_history]
+    return [{"role": msg.role, "content": msg.content, "context_updates": msg.context_update} for msg in chat_history]
 
 @app.delete("/projects/{project_id}/chat_history")
 async def clear_chat_history(project_id: str, db: Session = Depends(get_db)):

@@ -798,9 +798,30 @@ body {
 
 .contextUpdateSummary {
   margin-top: var(--padding-medium);
-  background-color: var(--background-color);
-  border-radius: var(--border-radius-medium);
-  overflow: hidden;
+}
+
+.contextUpdateButton {
+  display: flex;
+  align-items: center;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  padding: var(--padding-small) var(--padding-medium);
+  color: var(--text-color);
+  font-size: var(--font-size-small);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 100%;
+  text-align: left;
+  margin-bottom: var(--padding-small);
+}
+
+.contextUpdateButton:hover {
+  background-color: var(--accent-color);
+}
+
+.contextUpdateIcon {
+  margin-right: var(--padding-small);
 }
 
 .contextUpdateItem {
@@ -951,41 +972,6 @@ button.toggleContextSidebarButton {
   border-radius: var(--border-radius-small);
   font-weight: bold;
   text-align: center;
-}
-
-.contextUpdateSummary {
-  margin-top: var(--padding-medium);
-  background-color: var(--background-color);
-  border-radius: var(--border-radius-medium);
-  overflow: hidden;
-}
-
-.contextUpdateItem {
-  padding: var(--padding-small);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.contextUpdateItem:last-child {
-  border-bottom: none;
-}
-
-.contextUpdateLabel {
-  display: block;
-  font-weight: bold;
-  color: var(--text-secondary);
-  margin-bottom: var(--padding-small);
-}
-
-.updatePreview {
-  display: block;
-  background-color: var(--surface-color);
-  padding: var(--padding-small);
-  border-radius: var(--border-radius-small);
-  font-family: monospace;
-  font-size: 0.9em;
-  white-space: pre-wrap;
-  word-break: break-all;
-  color: var(--text-color);
 }
 
 .resizer {

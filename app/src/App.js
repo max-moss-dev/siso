@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { BrowserRouter as Router, Route, Routes, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './App.module.css';
@@ -6,7 +6,6 @@ import Sidebar from './components/Sidebar';
 import MainArea from './components/MainArea';
 import AddBlockModal from './components/AddBlockModal';
 import AddProjectModal from './components/AddProjectModal';
-
 const API_URL = 'http://localhost:8000';
 
 function AppContent() {
@@ -32,11 +31,23 @@ function AppContent() {
   const [blockHistory, setBlockHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
+  const contextBlocksRef = useRef({});
+
+  const scrollToContextBlock = useCallback((blockId) => {
+    const blockElement = contextBlocksRef.current[blockId];
+    if (blockElement) {
+      blockElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
+
   const fetchContextBlocks = useCallback(async () => {
     if (!selectedProject) return;
     try {
       const response = await axios.get(`${API_URL}/projects/${selectedProject}/context_blocks`);
-      setContextBlocks(response.data);
+      setContextBlocks(response.data.map(block => ({
+        ...block,
+        pendingContent: block.pending_content || null
+      })));
       setIsLoading(false);
     } catch (error) {
       console.error("Error fetching context blocks:", error);
@@ -48,17 +59,7 @@ function AppContent() {
     if (!selectedProject) return;
     try {
       const response = await axios.get(`${API_URL}/projects/${selectedProject}/chat_history`);
-      const history = response.data.map(msg => {
-        if (msg.role === 'assistant' && msg.context_update) {
-          const { block_title } = msg.context_update;
-          return {
-            ...msg,
-            content: `${msg.content}\n\nI've suggested an update to the "${block_title}" context block. Please review and accept or reject the changes.`
-          };
-        }
-        return msg;
-      });
-      setChatHistory(history);
+      setChatHistory(response.data);
     } catch (error) {
       console.error("Error fetching chat history:", error);
     }
@@ -102,7 +103,6 @@ function AppContent() {
       });
       const { response: aiResponse, context_updates } = response.data;
 
-      let updatedAiResponse = aiResponse;
       if (context_updates && context_updates.length > 0) {
         const updatedBlocks = contextBlocks.map(block => {
           const update = context_updates.find(update => update.block_id === block.id);
@@ -112,17 +112,11 @@ function AppContent() {
           return block;
         });
         setContextBlocks(updatedBlocks);
-        
-        const updateMessages = context_updates.map(update => {
-          const block = contextBlocks.find(b => b.id === update.block_id);
-          return `- "${block.title}": ${update.new_content.substring(0, 50)}...`;
-        });
-        updatedAiResponse = `${aiResponse}\n\nI've suggested updates to the following context blocks:\n${updateMessages.join('\n')}`;
       }
 
       const aiMessage = { 
         role: 'assistant', 
-        content: updatedAiResponse,
+        content: aiResponse,
         context_updates: context_updates 
       };
       setChatHistory([...chatHistory, newMessage, aiMessage]);
@@ -378,6 +372,8 @@ function AppContent() {
         toggleContextSidebar={toggleContextSidebar}
         isContextSidebarOpen={isContextSidebarOpen}
         setIsContextSidebarOpen={setIsContextSidebarOpen}
+        scrollToContextBlock={scrollToContextBlock}
+        contextBlocksRef={contextBlocksRef}
       />
       {showAddBlockModal && <AddBlockModal onAddBlock={handleAddBlock} onClose={() => setShowAddBlockModal(false)} />}
       {showAddProjectModal && <AddProjectModal onAddProject={handleAddProject} onClose={() => setShowAddProjectModal(false)} />}

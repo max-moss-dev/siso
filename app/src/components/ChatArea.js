@@ -1,13 +1,23 @@
 import React, { useRef, useEffect } from 'react';
+import styles from '../App.module.css';
+import { FaPaperPlane, FaUser, FaRobot } from 'react-icons/fa';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { FaUser, FaRobot, FaPaperPlane } from 'react-icons/fa';
 import { MentionsInput, Mention } from 'react-mentions';
-import styles from '../App.module.css';
 import { mentionsInputStyle, mentionStyle } from '../MentionsInputStyle';
+import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import ChatContextMention from './ChatContextMention';
 
-function ChatArea({ chatHistory, message, setMessage, onSendMessage, contextBlocks, onMentionInChat }) {
+function ChatArea({ 
+  chatHistory, 
+  message, 
+  setMessage, 
+  onSendMessage, 
+  contextBlocks, 
+  toggleContextSidebar, 
+  setIsContextSidebarOpen,
+  scrollToContextBlock
+}) {
   const chatHistoryRef = useRef(null);
   const suggestionsPortalRef = useRef(null);
 
@@ -38,7 +48,7 @@ function ChatArea({ chatHistory, message, setMessage, onSendMessage, contextBloc
       const match = /language-(\w+)/.exec(className || '');
       return !inline && match ? (
         <SyntaxHighlighter
-          style={vscDarkPlus}
+          style={atomDark}
           language={match[1]}
           PreTag="div"
           {...props}
@@ -53,24 +63,6 @@ function ChatArea({ chatHistory, message, setMessage, onSendMessage, contextBloc
     }
   };
 
-  const renderContextUpdateSummary = (contextUpdates) => {
-    if (!contextUpdates || contextUpdates.length === 0) return null;
-  
-    return (
-      <div className={styles.contextUpdateSummary}>
-        {contextUpdates.map((update, index) => (
-          <div key={index} className={styles.contextUpdateItem}>
-            <span className={styles.contextUpdateLabel}>{update.block_title}</span>
-            <code className={styles.updatePreview}>
-              {update.new_content.substring(0, 100)}
-              {update.new_content.length > 100 ? '...' : ''}
-            </code>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   return (
     <div className={styles.chatContainer}>
       <div className={styles.chatHistory} ref={chatHistoryRef}>
@@ -82,22 +74,28 @@ function ChatArea({ chatHistory, message, setMessage, onSendMessage, contextBloc
             }`}
           >
             <div className={styles.messageHeader}>
-              {msg.role === 'user' ? (
-                <>
-                  <FaUser className={styles.messageIcon} />
-                  <span className={styles.messageLabel}>You</span>
-                </>
-              ) : (
-                <>
-                  <FaRobot className={styles.messageIcon} />
-                  <span className={styles.messageLabel}>AI</span>
-                </>
-              )}
+              <span className={styles.messageIcon}>
+                {msg.role === 'user' ? <FaUser /> : <FaRobot />}
+              </span>
+              <span className={styles.messageLabel}>
+                {msg.role === 'user' ? 'You' : 'AI'}
+              </span>
             </div>
             <div className={styles.messageContent}>
-              <ReactMarkdown components={renderers}>{msg.content}</ReactMarkdown>
+              <ReactMarkdown
+                components={renderers}
+              >
+                {msg.content}
+              </ReactMarkdown>
             </div>
-            {msg.role === 'assistant' && msg.context_updates && renderContextUpdateSummary(msg.context_updates)}
+            {msg.context_updates && msg.context_updates.length > 0 && (
+              <ChatContextMention
+                contextUpdates={msg.context_updates}
+                toggleContextSidebar={toggleContextSidebar}
+                setIsContextSidebarOpen={setIsContextSidebarOpen}
+                scrollToContextBlock={scrollToContextBlock}
+              />
+            )}
           </div>
         ))}
       </div>
