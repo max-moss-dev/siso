@@ -112,8 +112,8 @@ function MainArea({
 
   const expandContextBlock = useCallback((blockId) => {
     onUpdateBlock(blockId, { isCollapsed: false });
-    setIsContextSidebarOpen(true);
-  }, [onUpdateBlock, setIsContextSidebarOpen]);
+    localStorage.setItem('isContextSidebarOpen', true);
+  }, [onUpdateBlock]);
 
   return (
     <div className={styles.mainContent}>
