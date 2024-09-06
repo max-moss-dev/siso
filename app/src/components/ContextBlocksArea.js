@@ -31,7 +31,6 @@ function ContextBlocksArea({ contextBlocks, isLoading, onUpdateBlock, onDeleteBl
       {contextBlocks.map((block, index) => (
         <ContextBlock
           key={block.id}
-          ref={(el) => contextBlockRefs.current[block.id] = el}
           block={block}
           onUpdate={onUpdateBlock}
           onDelete={onDeleteBlock}

@@ -1,10 +1,10 @@
-import React, { useRef, useEffect, useState, useCallback, forwardRef } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { diffLines } from 'diff';
 import { FaWrench, FaCheck, FaTimes, FaExchangeAlt, FaTrash, FaChevronDown, FaEdit, FaArrowUp, FaArrowDown, FaMagic, FaCommentDots } from 'react-icons/fa';
 import styles from '../App.module.css';
 
-const ContextBlock = forwardRef(({ block, onUpdate, onDelete, onGenerateContent, onFixContent, onMoveUp, onMoveDown, isFirst, isLast, onMentionInChat }, ref) => {
+const ContextBlock = ({ block, onUpdate, onDelete, onGenerateContent, onFixContent, onMoveUp, onMoveDown, isFirst, isLast, onMentionInChat }) => {
   const textareaRef = useRef(null);
   const [content, setContent] = useState(block.content);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -141,7 +141,7 @@ const ContextBlock = forwardRef(({ block, onUpdate, onDelete, onGenerateContent,
   };
 
   return (
-    <div ref={ref} className={`${styles.contextBlock} ${block.pendingContent ? styles.pendingChanges : ''}`}>
+    <div className={`${styles.contextBlock} ${block.pendingContent ? styles.pendingChanges : ''}`}>
       <div className={styles.contextBlockHeader} onClick={toggleCollapse}>
         <button onClick={handleTitleEdit} className={styles.editTitleButton}>
           <FaEdit />
@@ -275,6 +275,6 @@ const ContextBlock = forwardRef(({ block, onUpdate, onDelete, onGenerateContent,
       </div>
     </div>
   );
-});
+};
 
 export default ContextBlock;
