@@ -5,9 +5,9 @@
 .contextUpdateButton {
   display: flex;
   align-items: center;
-  background-color: var(--surface-color);
+  background-color: var(--chat-context-mention-color);
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-small);
+  border-radius: var(--border-radius-medium);
   padding: var(--padding-small) var(--padding-medium);
   color: var(--text-color);
   font-size: var(--font-size-small);
@@ -37,5 +37,5 @@
 .contextUpdateDescription {
   margin: 0;
   font-size: 0.9em;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
 }

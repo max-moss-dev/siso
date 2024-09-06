@@ -1,9 +1,11 @@
 :root {
   --background-color: #2f3136;
   --surface-color: #36393f;
+  --chat-context-mention-color: #5d6269;
   --sidebar-bg: #202225;
   --text-color: #dcddde;
   --text-secondary: #8e9297;
+  --text-tertiary: #cfd0d1;
   --border-color: #40444b;
   --accent-color: #696868;
   --accent-color-hover: #747474;
