@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styles from '../App.module.css';
 import ContextBlocksArea from './ContextBlocksArea';
 import ChatArea from './ChatArea';
@@ -34,7 +34,6 @@ function MainArea({
   toggleContextSidebar,
   isContextSidebarOpen,
   setIsContextSidebarOpen,
-  scrollToContextBlock,
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(projectName);
@@ -45,6 +44,7 @@ function MainArea({
   });
   const [isDragging, setIsDragging] = useState(false);
   const contextBlocksColumnRef = useRef(null);
+  const contextBlockRefs = useRef({});
 
   useEffect(() => {
     setEditedName(projectName);
@@ -109,6 +109,11 @@ function MainArea({
     document.addEventListener('mousemove', doDrag);
     document.addEventListener('mouseup', stopDrag);
   };
+
+  const expandContextBlock = useCallback((blockId) => {
+    onUpdateBlock(blockId, { isCollapsed: false });
+    setIsContextSidebarOpen(true);
+  }, [onUpdateBlock, setIsContextSidebarOpen]);
 
   return (
     <div className={styles.mainContent}>
@@ -184,7 +189,7 @@ function MainArea({
             contextBlocks={contextBlocks}
             toggleContextSidebar={toggleContextSidebar}
             setIsContextSidebarOpen={setIsContextSidebarOpen}
-            scrollToContextBlock={scrollToContextBlock}
+            expandContextBlock={expandContextBlock}
             onUpdateBlock={onUpdateBlock}
           />
         </div>
@@ -225,6 +230,7 @@ function MainArea({
             onReorderBlocks={onReorderBlocks}
             onAddBlock={onAddBlock}
             onMentionInChat={handleMentionInChat}
+            contextBlockRefs={contextBlockRefs}
           />
         </div>
       </div>

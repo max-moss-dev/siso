@@ -2,7 +2,7 @@ import React from 'react';
 import { MdUpdate } from 'react-icons/md';
 import styles from './ChatContextMention.module.css';
 
-const ChatContextMention = ({ contextUpdates, toggleContextSidebar, setIsContextSidebarOpen, scrollToContextBlock }) => {
+const ChatContextMention = ({ contextUpdates, toggleContextSidebar, setIsContextSidebarOpen, expandContextBlock }) => {
   if (!contextUpdates || contextUpdates.length === 0) return null;
 
   return (
@@ -14,7 +14,7 @@ const ChatContextMention = ({ contextUpdates, toggleContextSidebar, setIsContext
           onClick={() => {
             toggleContextSidebar();
             setIsContextSidebarOpen(true);
-            scrollToContextBlock(update.block_id);
+            expandContextBlock(update.block_id);
           }}
         >
           <MdUpdate className={styles.contextUpdateIcon} />

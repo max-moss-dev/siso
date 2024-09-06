@@ -33,13 +33,6 @@ function AppContent() {
 
   const contextBlocksRef = useRef({});
 
-  const scrollToContextBlock = useCallback((blockId) => {
-    const blockElement = contextBlocksRef.current[blockId];
-    if (blockElement) {
-      blockElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, []);
-
   const fetchContextBlocks = useCallback(async () => {
     if (!selectedProject) return;
     try {
@@ -168,10 +161,19 @@ function AppContent() {
 
   const handleUpdateBlock = async (blockId, updatedBlock) => {
     try {
-      // Update the backend first
-      await axios.put(`${API_URL}/projects/${selectedProject}/context_blocks/${blockId}`, updatedBlock);
+      // Only send necessary fields to the backend
+      const dataToSend = {
+        title: updatedBlock.title,
+        content: updatedBlock.content,
+        type: updatedBlock.type
+      };
 
-      // If the backend update is successful, update the local state
+      // Only update the backend if we have changes other than isCollapsed
+      if (Object.keys(dataToSend).some(key => updatedBlock[key] !== undefined)) {
+        await axios.put(`${API_URL}/projects/${selectedProject}/context_blocks/${blockId}`, dataToSend);
+      }
+
+      // Update the local state
       setContextBlocks(prevBlocks => {
         const newBlocks = prevBlocks.map(block => 
           block.id === blockId ? { ...block, ...updatedBlock } : block
@@ -372,7 +374,6 @@ function AppContent() {
         toggleContextSidebar={toggleContextSidebar}
         isContextSidebarOpen={isContextSidebarOpen}
         setIsContextSidebarOpen={setIsContextSidebarOpen}
-        scrollToContextBlock={scrollToContextBlock}
         contextBlocksRef={contextBlocksRef}
       />
       {showAddBlockModal && <AddBlockModal onAddBlock={handleAddBlock} onClose={() => setShowAddBlockModal(false)} />}

@@ -1,17 +1,17 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, forwardRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { diffLines } from 'diff';
 import { FaWrench, FaCheck, FaTimes, FaExchangeAlt, FaTrash, FaChevronDown, FaEdit, FaArrowUp, FaArrowDown, FaMagic, FaCommentDots } from 'react-icons/fa';
 import styles from '../App.module.css';
 
-function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixContent, onMoveUp, onMoveDown, isFirst, isLast, onMentionInChat }) {
+const ContextBlock = forwardRef(({ block, onUpdate, onDelete, onGenerateContent, onFixContent, onMoveUp, onMoveDown, isFirst, isLast, onMentionInChat }, ref) => {
   const textareaRef = useRef(null);
   const [content, setContent] = useState(block.content);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isFixing, setIsFixing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(block.isCollapsed !== false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [suggestedContent, setSuggestedContent] = useState(null);
 
@@ -26,12 +26,15 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
   useEffect(() => {
     if (block.pendingContent) {
       setSuggestedContent(block.pendingContent);
-      setIsCollapsed(false);
       setShowComparison(true);
     } else {
       setShowComparison(false);
     }
   }, [block.pendingContent]);
+
+  useEffect(() => {
+    setIsCollapsed(block.isCollapsed !== false);
+  }, [block.isCollapsed]);
 
   const handleContentChange = (e) => {
     const value = e.target.value;
@@ -115,7 +118,9 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
   };
 
   const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
+    const newIsCollapsed = !isCollapsed;
+    setIsCollapsed(newIsCollapsed);
+    onUpdate(block.id, { isCollapsed: newIsCollapsed });
   };
 
   const handleTitleEdit = (e) => {
@@ -136,7 +141,7 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
   };
 
   return (
-    <div className={`${styles.contextBlock} ${block.pendingContent ? styles.pendingChanges : ''}`}>
+    <div ref={ref} className={`${styles.contextBlock} ${block.pendingContent ? styles.pendingChanges : ''}`}>
       <div className={styles.contextBlockHeader} onClick={toggleCollapse}>
         <button onClick={handleTitleEdit} className={styles.editTitleButton}>
           <FaEdit />
@@ -270,6 +275,6 @@ function ContextBlock({ block, onUpdate, onDelete, onGenerateContent, onFixConte
       </div>
     </div>
   );
-}
+});
 
 export default ContextBlock;

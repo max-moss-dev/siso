@@ -3,7 +3,7 @@ import ContextBlock from './ContextBlock';
 import styles from '../App.module.css';
 import { FaPlus } from 'react-icons/fa';
 
-function ContextBlocksArea({ contextBlocks, isLoading, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, onReorderBlocks, onAddBlock, onMentionInChat }) {
+function ContextBlocksArea({ contextBlocks, isLoading, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, onReorderBlocks, onAddBlock, onMentionInChat, contextBlockRefs }) {
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -31,6 +31,7 @@ function ContextBlocksArea({ contextBlocks, isLoading, onUpdateBlock, onDeleteBl
       {contextBlocks.map((block, index) => (
         <ContextBlock
           key={block.id}
+          ref={(el) => contextBlockRefs.current[block.id] = el}
           block={block}
           onUpdate={onUpdateBlock}
           onDelete={onDeleteBlock}

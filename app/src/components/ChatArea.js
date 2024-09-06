@@ -16,7 +16,8 @@ function ChatArea({
   contextBlocks, 
   toggleContextSidebar, 
   setIsContextSidebarOpen,
-  scrollToContextBlock
+  scrollToContextBlock,
+  expandContextBlock
 }) {
   const chatHistoryRef = useRef(null);
   const suggestionsPortalRef = useRef(null);
@@ -94,6 +95,7 @@ function ChatArea({
                 toggleContextSidebar={toggleContextSidebar}
                 setIsContextSidebarOpen={setIsContextSidebarOpen}
                 scrollToContextBlock={scrollToContextBlock}
+                expandContextBlock={expandContextBlock}
               />
             )}
           </div>
