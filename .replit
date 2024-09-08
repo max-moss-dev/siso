@@ -1,0 +1,77 @@
+modules = ["nodejs-20:v8-20230920-bd784b9", "python-3.12:v25-20230920-d4ad2e4"]
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["sh", "-c", "python main.py"]
+deploymentTarget = "cloudrun"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Run Backend"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Run Frontend"
+
+[[workflows.workflow]]
+name = "Run Backend"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pip install fastapi uvicorn sqlalchemy openai python-dotenv && python main.py"
+waitForPort = 8000
+
+[[workflows.workflow]]
+name = "Run Frontend"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd app && npm install && npm start"
+waitForPort = 3000
+
+[[ports]]
+localPort = 8000
+externalPort = 80
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
+
+[env]
+PYTHONPATH = "${PYTHONPATH}:${workspaceRoot}"
+PATH = "${PATH}:${workspaceRoot}/node_modules/.bin"
+
+[packager]
+language = "nodejs"
+
+[packager.features]
+packageSearch = true
+guessImports = true
+
+[languages]
+[languages.javascript]
+pattern = "**/{*.js,*.jsx,*.ts,*.tsx}"
+[languages.javascript.languageServer]
+start = "typescript-language-server --stdio"
+[languages.python]
+pattern = "**/*.py"
+[languages.python.languageServer]
+start = "pylsp"
