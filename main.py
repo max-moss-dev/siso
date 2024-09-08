@@ -212,14 +212,13 @@ async def chat(project_id: str, request: ChatRequest, db: Session = Depends(get_
 Context Blocks:
 {context}
 
-Use the above context to answer the user's questions. If you need to update multiple context blocks, respond with a JSON object in the following format:
-{{
-    "response": "Your response to the user",
-    "context_updates": [
-        {{"block_id": "id1", "new_content": "updated content for block 1"}},
-        {{"block_id": "id2", "new_content": "updated content for block 2"}}
-    ]
-}}
+Use the above context to answer the user's questions. If you need to update multiple context blocks, include a section at the end of your response like this:
+
+context_updates: [
+    {{"block_id": "id1", "new_content": "updated content for block 1"}},
+    {{"block_id": "id2", "new_content": "updated content for block 2"}}
+]
+
 Make sure to use the correct block IDs when suggesting updates."""},
         *[{"role": msg.role, "content": msg.content} for msg in chat_history if msg.content is not None],
         {"role": "user", "content": request.message}
@@ -227,51 +226,34 @@ Make sure to use the correct block IDs when suggesting updates."""},
     
     response = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=messages,
-        functions=[
-            {
-                "name": "update_context_blocks",
-                "description": "Update multiple context blocks with new content",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "response": {"type": "string"},
-                        "context_updates": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "block_id": {"type": "string"},
-                                    "new_content": {"type": "string"}
-                                },
-                                "required": ["block_id", "new_content"]
-                            }
-                        }
-                    },
-                    "required": ["response", "context_updates"]
-                }
-            }
-        ]
+        messages=messages
     )
     
     bot_message = response.choices[0].message.content
-    context_updates = None
+    context_updates = []
 
-    if response.choices[0].message.function_call:
-        function_args = json.loads(response.choices[0].message.function_call.arguments)
-        bot_message = function_args.get("response", "")
-        raw_context_updates = function_args.get("context_updates", [])
-
-        context_updates = []
-        for update in raw_context_updates:
-            db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == update["block_id"], ContextBlockModel.project_id == project_id).first()
-            if db_block:
-                context_updates.append({
-                    "block_id": db_block.id,
-                    "block_title": db_block.title,
-                    "new_content": update["new_content"]
-                })
-                db_block.pending_content = update["new_content"]
+    # Parse the bot message for context updates
+    if "context_updates" in bot_message.lower():
+        # Split the message into response and context updates
+        parts = bot_message.split("context_updates:", 1)
+        if len(parts) == 2:
+            bot_message = parts[0].strip()
+            updates_text = parts[1].strip()
+            
+            # Parse the updates
+            try:
+                updates = json.loads(updates_text)
+                for update in updates:
+                    db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == update["block_id"], ContextBlockModel.project_id == project_id).first()
+                    if db_block:
+                        context_updates.append({
+                            "block_id": db_block.id,
+                            "block_title": db_block.title,
+                            "new_content": update["new_content"]
+                        })
+                        db_block.pending_content = update["new_content"]
+            except json.JSONDecodeError:
+                print("Failed to parse context updates")
 
     new_user_message = ChatMessageModel(
         id=str(uuid4()),
