@@ -32,55 +32,44 @@ UI interface web app aiming to provide a fast and intuitive way to provide LLM d
 
 ### Running the App
 
-1. Start the backend and frontend without Electron:
-   ```
-   npm start
-   ```
+Start the backend and frontend:
+```
+npm start
+```
 
-2. To run with Electron in development mode:
-   ```
-   npm run dev
-   ```
+This will start both the Python backend and React frontend concurrently.
 
 ### Building for Production
 
-1. Build the React app and Electron app:
+Build the React app:
+```
+npm run build
+```
+
+This will create an optimized build of the React app in the `build` folder.
+
+### Running the Production Build
+
+
+This will create a production-ready build in the `build` folder.
+
+## Environment Setup
+
+1. Set up your Python environment (venv, conda, etc.)
+2. Activate your Python environment
+3. Run the following command to set your Python path:
    ```
-   npm run build
+   npm run set-python-path
    ```
+   This will create or update a `.env.local` file with your Python path.
 
-   This will create a distributable version of your app in the `dist` folder.
+4. Create a `.env` file in the root directory and add:
+   ```
+   OPENAI_API_KEY=your_openai_api_key_here
+   ```
+   Replace the placeholder with your actual OpenAI API key.
 
-### Scripts
-
-- `npm run start-react`: Start the React frontend
-- `npm run start-python`: Start the Python backend
-- `npm start`: Start both backend and frontend without Electron
-- `npm run electron`: Run the Electron app
-- `npm run dev`: Run backend, frontend, and Electron in development mode
-- `npm run build-react`: Build the React app
-- `npm run build-electron`: Build the Electron app
-- `npm run build`: Build both React and Electron apps
-
-### Attaching to System
-
-#### macOS
-1. After building, locate the `.app` file in the `dist` folder.
-2. Drag the `.app` file to your Applications folder.
-
-#### Windows
-1. After building, locate the `.exe` file in the `dist` folder.
-2. Right-click the `.exe` file and select "Create shortcut".
-3. Move the shortcut to your desktop or Start menu.
-
-#### Linux
-1. After building, locate the AppImage or .deb file in the `dist` folder.
-2. For AppImage:
-   - Make it executable: `chmod +x yourapp.AppImage`
-   - Move it to a convenient location, e.g., `~/Applications`
-   - Create a desktop entry file to make it show up in your application menu
-3. For .deb file:
-   - Install it using: `sudo dpkg -i yourapp.deb`
+The app will use the Python path from `.env.local` if available, otherwise it will use 'python' and rely on your system PATH.
 
 ## Python Environment Management
 
@@ -102,8 +91,6 @@ For better dependency management and project isolation, it's recommended to use 
    pip install -r requirements.txt
    ```
 
-For more information on venv, see the [official documentation](https://docs.python.org/3/library/venv.html).
-
 ### Using Conda
 
 1. Create a new environment:
@@ -121,34 +108,4 @@ For more information on venv, see the [official documentation](https://docs.pyth
    pip install -r requirements.txt
    ```
 
-For more information on Conda, visit the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
-
-### Additional Resources
-
-- [Python Virtual Environments: A Primer](https://realpython.com/python-virtual-environments-a-primer/)
-- [The Hitchhiker's Guide to Python: Virtual Environments](https://docs.python-guide.org/dev/virtualenvs/)
-
 Remember to activate your chosen environment before running the Python backend or installing dependencies.
-
-### Python Dependencies
-
-Install Python dependencies:
-```
-## Environment Setup
-
-1. Set up your Python environment (venv, conda, etc.)
-2. Activate your Python environment
-3. Run the following command to set your Python path:
-   ```
-   npm run set-python-path
-   ```
-   This will create or update a `.env.local` file with your Python path.
-
-4. Create a `.env` file in the root directory and add:
-   ```
-   OPENAI_API_KEY=your_openai_api_key_here
-   MAC_DEVELOPER_ID=your_mac_developer_id_here
-   ```
-   Replace the placeholders with your actual values.
-
-The app will use the Python path from `.env.local` if available, otherwise it will use 'python' and rely on your system PATH.

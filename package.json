@@ -1,17 +1,13 @@
 {
   "name": "siso",
   "version": "1.0.0",
-  "main": "build/electron.js",
   "scripts": {
     "start-react": "react-scripts start",
     "start-python": "python main.py",
     "start": "concurrently \"npm run start-python\" \"npm run start-react\"",
-    "electron": "wait-on http://localhost:3000 && ELECTRON_START_URL=http://localhost:3000 electron public/electron.js",
-    "dev": "concurrently \"npm run start-python\" \"npm run start-react\" \"npm run electron\"",
-    "build-react": "react-scripts build",
-    "postbuild-react": "cp public/electron.js build/electron.js",
-    "build": "npm run build-react && npm run postbuild-react && electron-builder --mac --config.mac.identity=null",
-    "prebuild": "mkdir -p build && cp main.py build/main.py",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
     "set-python-path": "node -e \"console.log('PYTHON_PATH=' + require('child_process').execSync('which python').toString().trim())\" > .env.local"
   },
   "dependencies": {
@@ -33,11 +29,7 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "electron": "^25.3.1",
-    "electron-builder": "^24.6.3",
-    "electron-icon-builder": "^2.0.1",
-    "typescript": "^5.3.2",
-    "wait-on": "^8.0.1"
+    "typescript": "^5.3.2"
   },
   "browserslist": {
     "production": [
@@ -50,26 +42,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "build": {
-    "appId": "com.maxmoss.siso",
-    "files": [
-      "build/**/*",
-      "main.py"
-    ],
-    "extraResources": [
-      {"from": "main.py", "to": "main.py"}
-    ],
-    "mac": {
-      "category": "your.app.category.type",
-      "icon": "assets/icon.icns",
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "entitlements": "config/entitlements.mac.plist",
-      "entitlementsInherit": "config/entitlements.mac.plist",
-      "identity": null
-    },
-    "icon": "assets/icon.png"
   },
   "description": "Structured Input, Structured Output - A tool for project scaffolding and more",
   "author": {
