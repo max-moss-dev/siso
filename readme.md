@@ -1,50 +1,135 @@
-# Structured
+# SISO
 
 Structured input, structured output
 
 UI interface web app aiming to provide a fast and intuitive way to provide LLM different blocks and types of inputs, define the output blocks and types of outputs. Mainly for project scaffolding, potentially some other use cases.
 
-# Model
-GPT-4o-mini
+## Getting Started
 
-## Documentation
+### Prerequisites
 
-- [Project Timeline](timeline.md)
-- [Use Cases](use-cases.md)
+- Node.js (v14 or later)
+- Python (v3.7 or later)
+- Git
 
-## Draft
+### Installation
 
-The UI of the app is based on one of the existing frameworks/libraries for prototyping LLM interfaces (Openweb UI, others...). The main focus is on creating an intuitive, easy-to-use interface, which at the same time gives the ability to split the input and output into different blocks, for different purposes and types of views. The chat history interface can be skipped or transformed into more of a project list.
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/structured.git
+   cd structured
+   ```
 
-## Context blocks
+2. Install Node.js dependencies:
+   ```
+   npm install
+   ```
 
-- Different types (text, table, canvas, image, more...)
-- Types of context:
-    - "Input only": content of the block is provided to every user interaction (message). LLM can't change the content of the block.
-    - "Input and output": content of the block is provided to every user interaction (message). LLM can change the content of the block.
-        - For future: Different types including:
-            - "Required": LLM should update the content of the block each time it has an update.
-            - "Optional": LLM can decide if adjustments to this block are needed, and only update it if needed.
-        - For future: LLM adds changes to the block content, which are displayed in a way similar to git changes, where the user can see what's removed and what's added. The user approves or declines changes.
-- Has name, prompt, and content:
-    - Name: name of the block.
-    - Prompt: prompt of the block is used to provide LLM with instructions for the block's purpose and how to handle the block content.
-    - Content: content of the block (types of content depend on the type of the block).
-- Users can tell LLM to work on all context blocks, or iterate on a specific block's content.
-- While working on a specific block, the LLM should take notes on how other blocks should be updated later, because of changes done to the current block content.
+3. Install Python dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
 
-### Default context blocks
+### Running the App
 
-- Chat
-- Permanent LLM notes
-    - Used to store user preferences. Described by prompt. Type "text", "input and output".
-- Temporary LLM notes
-    - Used to store info like blocks that need to be updated after the specific block content was updated. Once all the blocks are updated, the notes are cleared. Described by prompt. Type "text", "input and output".
+1. Start the backend and frontend without Electron:
+   ```
+   npm start
+   ```
 
-## Planner agent
+2. To run with Electron in development mode:
+   ```
+   npm run dev
+   ```
 
-- The planner agent is a special agent that is used to plan the project. It reasons on the user's goals, plans the context blocks needed to perform the project task in the best way. It creates the context blocks if needed and provides LLM with all the context blocks needed and output schema (structured output API) to split the output into different blocks.
+### Building for Production
 
-## MVP Approach
+1. Build the React app and Electron app:
+   ```
+   npm run build
+   ```
 
-The MVP approach focuses on building the simpler parts of features and functionalities first, and then adding more complex features later. Each day should be logically finished, ensuring that the app is functional and usable at the end of each day.
+   This will create a distributable version of your app in the `dist` folder.
+
+### Scripts
+
+- `npm run start-react`: Start the React frontend
+- `npm run start-python`: Start the Python backend
+- `npm start`: Start both backend and frontend without Electron
+- `npm run electron`: Run the Electron app
+- `npm run dev`: Run backend, frontend, and Electron in development mode
+- `npm run build-react`: Build the React app
+- `npm run build-electron`: Build the Electron app
+- `npm run build`: Build both React and Electron apps
+
+### Attaching to System
+
+#### macOS
+1. After building, locate the `.app` file in the `dist` folder.
+2. Drag the `.app` file to your Applications folder.
+
+#### Windows
+1. After building, locate the `.exe` file in the `dist` folder.
+2. Right-click the `.exe` file and select "Create shortcut".
+3. Move the shortcut to your desktop or Start menu.
+
+#### Linux
+1. After building, locate the AppImage or .deb file in the `dist` folder.
+2. For AppImage:
+   - Make it executable: `chmod +x yourapp.AppImage`
+   - Move it to a convenient location, e.g., `~/Applications`
+   - Create a desktop entry file to make it show up in your application menu
+3. For .deb file:
+   - Install it using: `sudo dpkg -i yourapp.deb`
+
+## Python Environment Management
+
+For better dependency management and project isolation, it's recommended to use a virtual environment for Python. Here are some options:
+
+### Using venv (built-in)
+
+1. Create a virtual environment:
+   ```
+   python -m venv myenv
+   ```
+
+2. Activate the environment:
+   - On Windows: `myenv\Scripts\activate`
+   - On macOS and Linux: `source myenv/bin/activate`
+
+3. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+
+For more information on venv, see the [official documentation](https://docs.python.org/3/library/venv.html).
+
+### Using Conda
+
+1. Create a new environment:
+   ```
+   conda create --name myenv python=3.9
+   ```
+
+2. Activate the environment:
+   ```
+   conda activate myenv
+   ```
+
+3. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+
+For more information on Conda, visit the [Conda documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
+
+### Additional Resources
+
+- [Python Virtual Environments: A Primer](https://realpython.com/python-virtual-environments-a-primer/)
+- [The Hitchhiker's Guide to Python: Virtual Environments](https://docs.python-guide.org/dev/virtualenvs/)
+
+Remember to activate your chosen environment before running the Python backend or installing dependencies.
+
+### Python Dependencies
+
+Install Python dependencies:

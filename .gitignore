@@ -10,3 +10,12 @@ yarn.lock
 context_blocks.json
 similar
 notes
+node_modules
+dist
+build
+
+# Python virtual environment
+myenv/
+
+# Python requirements file
+requirements.txt
