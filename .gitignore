@@ -3,6 +3,7 @@ persistent_db.sqlite
 .DS_Store
 .idea/
 .env
+.env.local
 __pycache__/
 package-lock.json
 pnpm-lock.yaml

@@ -133,3 +133,22 @@ Remember to activate your chosen environment before running the Python backend o
 ### Python Dependencies
 
 Install Python dependencies:
+```
+## Environment Setup
+
+1. Set up your Python environment (venv, conda, etc.)
+2. Activate your Python environment
+3. Run the following command to set your Python path:
+   ```
+   npm run set-python-path
+   ```
+   This will create or update a `.env.local` file with your Python path.
+
+4. Create a `.env` file in the root directory and add:
+   ```
+   OPENAI_API_KEY=your_openai_api_key_here
+   MAC_DEVELOPER_ID=your_mac_developer_id_here
+   ```
+   Replace the placeholders with your actual values.
+
+The app will use the Python path from `.env.local` if available, otherwise it will use 'python' and rely on your system PATH.
