@@ -1,5 +1,4 @@
-.streamlit/
-context_blocks.db
+persistent_db.sqlite
 .vscode/
 .DS_Store
 .idea/
@@ -9,4 +8,4 @@ package-lock.json
 pnpm-lock.yaml
 yarn.lock
 context_blocks.json
-persistent_db.sqlite
+similar
