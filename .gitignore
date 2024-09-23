@@ -20,3 +20,6 @@ myenv/
 
 # Python requirements file
 requirements.txt
+
+# Automator script
+start-siso.sh
