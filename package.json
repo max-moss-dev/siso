@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "start-react": "react-scripts start",
-    "start-python": "python main.py",
+    "start-python": "node scripts/start-python.js",
     "start": "concurrently \"npm run start-python\" \"npm run start-react\"",
     "build": "react-scripts build",
     "test": "react-scripts test",

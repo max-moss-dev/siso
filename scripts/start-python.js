@@ -1,5 +1,5 @@
 require('dotenv').config({path: '.env.local'});
-const { execSync, spawn } = require('child_process');
+const { spawn } = require('child_process');
 
 const pythonPath = process.env.PYTHON_PATH || 'python';
 
