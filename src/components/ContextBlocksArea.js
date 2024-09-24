@@ -1,9 +1,20 @@
 import React from 'react';
-import ContextBlock from './ContextBlock';
 import styles from '../App.module.css';
 import { FaPlus } from 'react-icons/fa';
+import { blockTypes } from '../blockTypes';
 
-function ContextBlocksArea({ contextBlocks, isLoading, onUpdateBlock, onDeleteBlock, onGenerateContent, onFixContent, onReorderBlocks, onAddBlock, onMentionInChat, contextBlockRefs }) {
+function ContextBlocksArea({ 
+  contextBlocks, 
+  isLoading, 
+  onUpdateBlock, 
+  onDeleteBlock, 
+  onGenerateContent, 
+  onFixContent, 
+  onReorderBlocks, 
+  onAddBlock, 
+  onMentionInChat, 
+  contextBlockRefs 
+}) {
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -28,21 +39,25 @@ function ContextBlocksArea({ contextBlocks, isLoading, onUpdateBlock, onDeleteBl
 
   return (
     <div className={styles.contextBlocksContainer}>
-      {contextBlocks.map((block, index) => (
-        <ContextBlock
-          key={block.id}
-          block={block}
-          onUpdate={onUpdateBlock}
-          onDelete={onDeleteBlock}
-          onGenerateContent={onGenerateContent}
-          onFixContent={onFixContent}
-          onMoveUp={() => moveBlockUp(block.id)}
-          onMoveDown={() => moveBlockDown(block.id)}
-          isFirst={index === 0}
-          isLast={index === contextBlocks.length - 1}
-          onMentionInChat={onMentionInChat}
-        />
-      ))}
+      {contextBlocks.map((block, index) => {
+        const BlockComponent = blockTypes[block.type]?.component;
+        return BlockComponent ? (
+          <BlockComponent
+            key={block.id}
+            block={block}
+            onUpdate={(updatedBlock) => onUpdateBlock(block.id, updatedBlock)}
+            onDelete={() => onDeleteBlock(block.id)}
+            onGenerateContent={() => onGenerateContent(block.id)}
+            onFixContent={(content) => onFixContent(block.id, content)}
+            onMoveUp={() => moveBlockUp(block.id)}
+            onMoveDown={() => moveBlockDown(block.id)}
+            isFirst={index === 0}
+            isLast={index === contextBlocks.length - 1}
+            onMentionInChat={() => onMentionInChat(block.id, block.title)}
+            ref={el => contextBlockRefs.current[block.id] = el}
+          />
+        ) : null;
+      })}
       <button 
         onClick={onAddBlock} 
         className={`${styles.button} ${styles.secondaryButton} ${styles.addBlockButton}`}

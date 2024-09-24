@@ -24,24 +24,14 @@ function MainArea({
   toggleSidebar, 
   onReorderBlocks, 
   onClearChatHistory, 
-  isClearingChat, 
-  onUndo, 
-  onRedo, 
-  canUndo, 
-  canRedo, 
-  onAcceptAllChanges, 
-  onRejectAllChanges, 
-  toggleContextSidebar,
-  isContextSidebarOpen,
-  setIsContextSidebarOpen,
+  isClearingChat,
+  isSidebarOpen,
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(projectName);
   const [canEdit, setCanEdit] = useState(true);
-  const [contextSidebarWidth, setContextSidebarWidth] = useState(() => {
-    const savedWidth = localStorage.getItem('contextSidebarWidth');
-    return savedWidth ? parseInt(savedWidth, 10) : 400;
-  });
+  const [isContextSidebarOpen, setIsContextSidebarOpen] = useState(true);
+  const [contextSidebarWidth, setContextSidebarWidth] = useState(400);
   const [isDragging, setIsDragging] = useState(false);
   const contextBlocksColumnRef = useRef(null);
   const contextBlockRefs = useRef({});
@@ -173,9 +163,9 @@ function MainArea({
                 <FaEraser /> {isClearingChat ? 'Clearing...' : 'Clear Chat'}
               </button>
               <button
-                onClick={toggleContextSidebar}
+                onClick={toggleSidebar}
                 className={`${styles.button} ${styles.secondaryButton} ${styles.toggleContextSidebarButton}`}
-                title={isContextSidebarOpen ? "Hide Context Sidebar" : "Show Context Sidebar"}
+                title={isSidebarOpen ? "Hide Context Sidebar" : "Show Context Sidebar"}
               >
                 <ContextSidebarIcon className={styles.contextSidebarIcon} />
               </button>
@@ -187,7 +177,7 @@ function MainArea({
             setMessage={setMessage}
             onSendMessage={onSendMessage}
             contextBlocks={contextBlocks}
-            toggleContextSidebar={toggleContextSidebar}
+            toggleContextSidebar={toggleSidebar}
             setIsContextSidebarOpen={setIsContextSidebarOpen}
             expandContextBlock={expandContextBlock}
             onUpdateBlock={onUpdateBlock}
@@ -205,21 +195,6 @@ function MainArea({
           style={{ width: isContextSidebarOpen ? `${contextSidebarWidth}px` : '0' }}
         >
           <h2 className={styles.contextBlocksTitle}>Context Blocks</h2>
-          {pendingUpdatesCount > 0 && (
-            <>
-              <div className={styles.batchUpdateButtons}>
-                <button onClick={onAcceptAllChanges} className={`${styles.button} ${styles.primaryButton}`}>
-                  Accept All Changes
-                </button>
-                <button onClick={onRejectAllChanges} className={`${styles.button} ${styles.secondaryButton}`}>
-                  Reject All Changes
-                </button>
-              </div>
-              <div className={styles.pendingUpdatesNotification}>
-                {pendingUpdatesCount} block{pendingUpdatesCount !== 1 ? 's' : ''} with pending updates
-              </div>
-            </>
-          )}
           <ContextBlocksArea 
             contextBlocks={contextBlocks}
             isLoading={isLoading}
@@ -234,16 +209,6 @@ function MainArea({
           />
         </div>
       </div>
-      {canUndo && canRedo && (
-        <div className={styles.undoRedoButtons}>
-          <button onClick={onUndo} disabled={!canUndo} className={`${styles.button} ${styles.secondaryButton}`}>
-            Undo
-          </button>
-          <button onClick={onRedo} disabled={!canRedo} className={`${styles.button} ${styles.secondaryButton}`}>
-            Redo
-          </button>
-        </div>
-      )}
     </div>
   );
 }

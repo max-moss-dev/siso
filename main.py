@@ -54,8 +54,8 @@ class ContextBlockModel(Base):
     id = Column(String, primary_key=True, index=True)
     project_id = Column(String, ForeignKey("projects.id"))
     title = Column(String, index=True)
-    content = Column(JSON)
     type = Column(String)
+    content = Column(JSON)
     order = Column(Integer)
 
     project = relationship("ProjectModel", back_populates="context_blocks")
@@ -95,8 +95,8 @@ def get_db():
 
 class ContextBlock(BaseModel):
     title: str
-    content: Union[str, List[str]]
     type: str
+    content: Any
 
 class ChatRequest(BaseModel):
     message: str
@@ -161,8 +161,8 @@ async def add_context_block(project_id: str, block: ContextBlock, db: Session = 
         id=str(uuid4()),
         project_id=project_id,
         title=block.title,
-        content=block.content,
         type=block.type,
+        content=block.content,
         order=max_order + 1
     )
     db.add(db_block)
@@ -380,8 +380,9 @@ async def add_context_block(project_id: str, block: ContextBlock, db: Session = 
         id=str(uuid4()),
         project_id=project_id,
         title=block.title,
+        type=block.type,
         content=block.content,
-        type=block.type
+        order=max_order + 1
     )
     db.add(db_block)
     db.commit()
