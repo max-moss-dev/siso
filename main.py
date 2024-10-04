@@ -454,7 +454,7 @@ async def delete_project(project_id: str, db: Session = Depends(get_db)):
     return {"message": "Project deleted successfully"}
 
 def create_default_project(db: Session):
-    default_project = ProjectModel(id=str(uuid4()), name="Default Project")
+    default_project = ProjectModel(id=str(uuid4()), name="New Project")
     db.add(default_project)
     db.commit()
     db.refresh(default_project)

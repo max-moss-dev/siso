@@ -21,11 +21,11 @@ function AppContent() {
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     const saved = localStorage.getItem('isSidebarOpen');
-    return saved !== null ? JSON.parse(saved) : true;
+    return saved !== null ? JSON.parse(saved) : false;
   });
   const [isContextSidebarOpen, setIsContextSidebarOpen] = useState(() => {
     const saved = localStorage.getItem('isContextSidebarOpen');
-    return saved !== null ? JSON.parse(saved) : true;
+    return saved !== null ? JSON.parse(saved) : false;
   });
   const [isClearingChat, setIsClearingChat] = useState(false);
   const [blockHistory, setBlockHistory] = useState([]);
@@ -63,13 +63,32 @@ function AppContent() {
       try {
         const response = await axios.get(`${API_URL}/projects`);
         setProjects(response.data);
+        
+        // Find the "New" project (assuming it's always the first one created)
+        const newProject = response.data.find(p => p.name === "New Project") || response.data[0];
+        
+        if (projectId) {
+          // Check if the projectId exists in the fetched projects
+          const projectExists = response.data.some(p => p.id === projectId);
+          if (projectExists) {
+            setSelectedProject(projectId);
+          } else {
+            // If the project doesn't exist, fallback to the "New" project
+            setSelectedProject(newProject.id);
+            navigate(`/project/${newProject.id}`);
+          }
+        } else if (!selectedProject && newProject) {
+          // If no project is selected, select the "New" project
+          setSelectedProject(newProject.id);
+          navigate(`/project/${newProject.id}`);
+        }
       } catch (error) {
         console.error("Error fetching projects:", error);
       }
     };
 
     fetchProjects();
-  }, []);
+  }, [projectId, selectedProject, navigate]);
 
   useEffect(() => {
     if (projectId) {

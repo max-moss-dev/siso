@@ -3,6 +3,10 @@ import { FaCube, FaPlus } from 'react-icons/fa';
 import styles from '../App.module.css';
 
 function Sidebar({ projects, selectedProject, onProjectSelect, onAddProject, isOpen }) {
+  if (!isOpen) {
+    return null; // Don't render anything if sidebar is closed
+  }
+
   return (
     <div className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : styles.sidebarClosed}`}>
       <h2>Projects</h2>
