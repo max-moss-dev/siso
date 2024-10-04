@@ -48,6 +48,14 @@ class ProjectModel(Base):
     id = Column(String, primary_key=True, index=True)
     name = Column(String, index=True)
 
+class PluginModel(Base):
+    __tablename__ = "plugins"
+
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid4()))
+    name = Column(String, index=True)
+    type = Column(String, unique=True)
+    config = Column(JSON)
+
 class ContextBlockModel(Base):
     __tablename__ = "context_blocks"
 
@@ -57,6 +65,8 @@ class ContextBlockModel(Base):
     content = Column(JSON)
     type = Column(String)
     order = Column(Integer)
+    plugin_type = Column(String, ForeignKey("plugins.type"), nullable=True)
+    plugin_data = Column(JSON, nullable=True)
 
     project = relationship("ProjectModel", back_populates="context_blocks")
 
@@ -94,9 +104,11 @@ def get_db():
         db.close()
 
 class ContextBlock(BaseModel):
-    title: str
-    content: Union[str, List[str]]
-    type: str
+    title: Optional[str] = None
+    content: Optional[Union[str, List[str]]] = None
+    type: Optional[str] = None
+    plugin_type: Optional[str] = None
+    isCollapsed: Optional[bool] = None
 
 class ChatRequest(BaseModel):
     message: str
@@ -122,6 +134,11 @@ class ChatResponse(BaseModel):
     response: str
     context_updates: Optional[List[ContextUpdate]] = None
 
+class PluginCreate(BaseModel):
+    name: str
+    type: str
+    config: Dict[str, Any]
+
 def add_order_column_if_not_exists(engine):
     inspector = inspect(engine)
     if 'order' not in [column['name'] for column in inspector.get_columns('context_blocks')]:
@@ -142,33 +159,56 @@ async def startup_event():
     create_tables()
     add_order_column_if_not_exists(engine)
     add_context_update_column_if_not_exists(engine)
+    add_plugin_columns_if_not_exist(engine)
     db = SessionLocal()
     try:
         projects = db.query(ProjectModel).all()
         if not projects:
             create_default_project(db)
         initialize_block_order(db)
+        initialize_default_plugins(db)
     finally:
         db.close()
 
 def create_tables():
     Base.metadata.create_all(bind=engine)
 
+def initialize_default_plugins(db: Session):
+    default_plugins = [
+        {"name": "Text", "type": "text", "config": {}}
+    ]
+    for plugin in default_plugins:
+        existing_plugin = db.query(PluginModel).filter(PluginModel.type == plugin["type"]).first()
+        if existing_plugin:
+            # Update existing plugin
+            for key, value in plugin.items():
+                setattr(existing_plugin, key, value)
+        else:
+            # Create new plugin
+            db_plugin = PluginModel(**plugin)
+            db.add(db_plugin)
+    db.commit()
+
 @app.post("/projects/{project_id}/context_blocks")
 async def add_context_block(project_id: str, block: ContextBlock, db: Session = Depends(get_db)):
-    max_order = db.query(func.max(ContextBlockModel.order)).filter(ContextBlockModel.project_id == project_id).scalar() or -1
-    db_block = ContextBlockModel(
-        id=str(uuid4()),
-        project_id=project_id,
-        title=block.title,
-        content=block.content,
-        type=block.type,
-        order=max_order + 1
-    )
-    db.add(db_block)
-    db.commit()
-    db.refresh(db_block)
-    return db_block
+    try:
+        max_order = db.query(func.max(ContextBlockModel.order)).filter(ContextBlockModel.project_id == project_id).scalar() or -1
+        db_block = ContextBlockModel(
+            id=str(uuid4()),
+            project_id=project_id,
+            title=block.title,
+            content=block.content,
+            type=block.type,
+            order=max_order + 1,
+            plugin_type=block.plugin_type  # Make sure this field exists in your ContextBlock model
+        )
+        db.add(db_block)
+        db.commit()
+        db.refresh(db_block)
+        return db_block
+    except Exception as e:
+        logger.error(f"Error adding context block: {str(e)}")
+        raise HTTPException(status_code=422, detail=f"Unable to process request: {str(e)}")
 
 @app.get("/projects/{project_id}/context_blocks")
 async def get_context_blocks(project_id: str, db: Session = Depends(get_db)):
@@ -177,15 +217,29 @@ async def get_context_blocks(project_id: str, db: Session = Depends(get_db)):
 
 @app.put("/projects/{project_id}/context_blocks/{block_id}")
 async def update_context_block(project_id: str, block_id: str, block: ContextBlock, db: Session = Depends(get_db)):
-    db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == block_id, ContextBlockModel.project_id == project_id).first()
-    if db_block is None:
-        raise HTTPException(status_code=404, detail="Context block not found")
-    db_block.title = block.title
-    db_block.content = block.content
-    db_block.type = block.type
-    db.commit()
-    db.refresh(db_block)
-    return db_block
+    try:
+        db_block = db.query(ContextBlockModel).filter(ContextBlockModel.id == block_id, ContextBlockModel.project_id == project_id).first()
+        if db_block is None:
+            raise HTTPException(status_code=404, detail="Context block not found")
+        
+        # Update the fields
+        if block.title is not None:
+            db_block.title = block.title
+        if block.content is not None:
+            db_block.content = block.content
+        if block.type is not None:
+            db_block.type = block.type
+        if block.plugin_type is not None:
+            db_block.plugin_type = block.plugin_type
+        if block.isCollapsed is not None:
+            db_block.isCollapsed = block.isCollapsed
+        
+        db.commit()
+        db.refresh(db_block)
+        return db_block
+    except Exception as e:
+        logger.error(f"Error updating context block: {str(e)}")
+        raise HTTPException(status_code=422, detail=f"Unable to process request: {str(e)}")
 
 @app.delete("/projects/{project_id}/context_blocks/{block_id}")
 async def delete_context_block(project_id: str, block_id: str, db: Session = Depends(get_db)):
@@ -498,6 +552,39 @@ def add_context_update_column_if_not_exists(engine):
     if 'context_update' not in [column['name'] for column in inspector.get_columns('chat_messages')]:
         with engine.connect() as conn:
             conn.execute(text("ALTER TABLE chat_messages ADD COLUMN context_update JSON"))
+            conn.commit()
+
+@app.post("/plugins")
+async def add_plugin(plugin: PluginCreate, db: Session = Depends(get_db)):
+    db_plugin = PluginModel(**plugin.dict())
+    db.add(db_plugin)
+    db.commit()
+    db.refresh(db_plugin)
+    return db_plugin
+
+@app.get("/plugins")
+async def get_plugins(db: Session = Depends(get_db)):
+    plugins = db.query(PluginModel).all()
+    return [{"id": plugin.id, "name": plugin.name, "type": plugin.type} for plugin in plugins]
+
+@app.delete("/plugins/{plugin_id}")
+async def delete_plugin(plugin_id: str, db: Session = Depends(get_db)):
+    db_plugin = db.query(PluginModel).filter(PluginModel.id == plugin_id).first()
+    if db_plugin is None:
+        raise HTTPException(status_code=404, detail="Plugin not found")
+    db.delete(db_plugin)
+    db.commit()
+    return {"message": "Plugin deleted successfully"}
+
+def add_plugin_columns_if_not_exist(engine):
+    inspector = inspect(engine)
+    existing_columns = [column['name'] for column in inspector.get_columns('context_blocks')]
+    with engine.connect() as conn:
+        if 'plugin_type' not in existing_columns:
+            conn.execute(text("ALTER TABLE context_blocks ADD COLUMN plugin_type STRING"))
+            conn.commit()
+        if 'plugin_data' not in existing_columns:
+            conn.execute(text("ALTER TABLE context_blocks ADD COLUMN plugin_data JSON"))
             conn.commit()
 
 if __name__ == "__main__":

@@ -1,15 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../App.module.css';
+import axios from 'axios';
+import { API_URL } from '../config';
 
 function AddBlockModal({ onAddBlock, onClose }) {
-  const [selectedType, setSelectedType] = useState('text');
   const [blockTitle, setBlockTitle] = useState('');
+  const [plugins, setPlugins] = useState([]);
+  const [selectedPlugin, setSelectedPlugin] = useState('');
+
+  useEffect(() => {
+    fetchPlugins();
+  }, []);
+
+  const fetchPlugins = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/plugins`);
+      console.log("Fetched plugins:", response.data);
+      setPlugins(response.data);
+      // Set the default selected plugin to 'text' if available
+      const textPlugin = response.data.find(p => p.type === 'text');
+      if (textPlugin) {
+        setSelectedPlugin(textPlugin.type);
+      } else if (response.data.length > 0) {
+        setSelectedPlugin(response.data[0].type);
+      }
+    } catch (error) {
+      console.error("Error fetching plugins:", error);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (blockTitle.trim()) {
-      onAddBlock(blockTitle.trim(), selectedType);
+    if (blockTitle.trim() && selectedPlugin) {
+      onAddBlock(blockTitle.trim(), selectedPlugin);
       setBlockTitle('');
+      onClose();
     }
   };
 
@@ -27,12 +52,15 @@ function AddBlockModal({ onAddBlock, onClose }) {
             required
           />
           <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
+            value={selectedPlugin}
+            onChange={(e) => setSelectedPlugin(e.target.value)}
             className={styles.select}
+            required
           >
-            <option value="text">Text</option>
-            <option value="list">List</option>
+            <option value="">Select a plugin</option>
+            {plugins.map(plugin => (
+              <option key={plugin.id} value={plugin.type}>{plugin.name}</option>
+            ))}
           </select>
           <div className={styles.modalButtons}>
             <button type="submit" className={`${styles.button} ${styles.primaryButton}`}>Add</button>

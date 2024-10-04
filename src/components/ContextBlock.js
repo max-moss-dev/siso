@@ -16,7 +16,11 @@ const ContextBlock = ({ block, onUpdate, onDelete, onGenerateContent, onFixConte
   const [suggestedContent, setSuggestedContent] = useState(null);
 
   const handleUpdate = useCallback((field, value) => {
-    onUpdate(block.id, { ...block, [field]: value });
+    onUpdate(block.id, { 
+      ...block, 
+      [field]: value,
+      plugin_type: block.plugin_type // Ensure plugin_type is always included
+    });
   }, [block, onUpdate]);
 
   useEffect(() => {
@@ -120,7 +124,7 @@ const ContextBlock = ({ block, onUpdate, onDelete, onGenerateContent, onFixConte
   const toggleCollapse = () => {
     const newIsCollapsed = !isCollapsed;
     setIsCollapsed(newIsCollapsed);
-    onUpdate(block.id, { isCollapsed: newIsCollapsed });
+    handleUpdate('isCollapsed', newIsCollapsed);
   };
 
   const handleTitleEdit = (e) => {
@@ -138,6 +142,36 @@ const ContextBlock = ({ block, onUpdate, onDelete, onGenerateContent, onFixConte
 
   const handleMentionInChat = () => {
     onMentionInChat(block.id, block.title);
+  };
+
+  const renderPluginContent = () => {
+    switch (block.plugin_type) {
+      case 'text':
+        return (
+          isEditing ? (
+            <textarea
+              ref={textareaRef}
+              value={content}
+              onChange={handleContentChange}
+              placeholder="Block content"
+              className={styles.contentTextarea}
+            />
+          ) : (
+            <div 
+              className={styles.markdownContent} 
+              onClick={() => setIsEditing(true)}
+            >
+              <ReactMarkdown>{content}</ReactMarkdown>
+            </div>
+          )
+        );
+      default:
+        return (
+          <div className={styles.pluginContent}>
+            Unsupported plugin type: {block.plugin_type}
+          </div>
+        );
+    }
   };
 
   return (
@@ -191,42 +225,7 @@ const ContextBlock = ({ block, onUpdate, onDelete, onGenerateContent, onFixConte
             </div>
           </div>
         ) : (
-          block.type === 'text' ? (
-            isEditing ? (
-              <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={handleContentChange}
-                placeholder="Block content"
-                className={styles.contentTextarea}
-              />
-            ) : (
-              <div 
-                className={styles.markdownContent} 
-                onClick={() => setIsEditing(true)}
-              >
-                <ReactMarkdown>{content}</ReactMarkdown>
-              </div>
-            )
-          ) : (
-            <ul>
-              {Array.isArray(block.content) ? block.content.map((item, index) => (
-                <li key={index}>
-                  <input
-                    value={item}
-                    onChange={(e) => {
-                      const newContent = [...block.content];
-                      newContent[index] = e.target.value;
-                      handleUpdate('content', newContent);
-                    }}
-                  />
-                </li>
-              )) : null}
-              <button onClick={() => handleUpdate('content', [...(Array.isArray(block.content) ? block.content : []), ''])}>
-                Add item
-              </button>
-            </ul>
-          )
+          renderPluginContent()
         )}
         {!suggestedContent && (
           <div className={styles.blockButtons}>
@@ -262,7 +261,7 @@ const ContextBlock = ({ block, onUpdate, onDelete, onGenerateContent, onFixConte
                 <FaMagic /> {isGenerating ? 'Generating...' : 'Generate'}
               </button>
             )}
-            {block.type === 'text' && (
+            {block.plugin_type === 'text' && (
               <button 
                 onClick={() => setIsEditing(!isEditing)} 
                 className={`${styles.button} ${styles.secondaryButton}`}

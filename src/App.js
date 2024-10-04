@@ -6,7 +6,8 @@ import Sidebar from './components/Sidebar';
 import MainArea from './components/MainArea';
 import AddBlockModal from './components/AddBlockModal';
 import AddProjectModal from './components/AddProjectModal';
-const API_URL = 'http://localhost:8000';
+import PluginManagement from './components/PluginManagement';
+import { API_URL } from './config';
 
 function AppContent() {
   const [projects, setProjects] = useState([]);
@@ -153,11 +154,12 @@ function AppContent() {
     }
   };
 
-  const handleAddBlock = async (blockTitle, blockType) => {
+  const handleAddBlock = async (blockTitle, pluginType) => {
     const newBlock = {
       title: blockTitle,
-      content: blockType === 'list' ? [] : '',
-      type: blockType,
+      content: '',
+      type: pluginType,
+      plugin_type: pluginType,
     };
 
     try {
@@ -166,6 +168,11 @@ function AppContent() {
       setShowAddBlockModal(false);
     } catch (error) {
       console.error("Error adding new block:", error);
+      if (error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+        console.error("Response headers:", error.response.headers);
+      }
     }
   };
 
@@ -180,19 +187,33 @@ function AppContent() {
 
   const handleUpdateBlock = async (blockId, updatedBlock) => {
     try {
-      // Only send necessary fields to the backend
       const dataToSend = {
         title: updatedBlock.title,
         content: updatedBlock.content,
-        type: updatedBlock.type
+        type: updatedBlock.type,
+        plugin_type: updatedBlock.plugin_type,
+        isCollapsed: updatedBlock.isCollapsed
       };
 
-      // Only update the backend if we have changes other than isCollapsed
-      if (Object.keys(dataToSend).some(key => updatedBlock[key] !== undefined)) {
-        await axios.put(`${API_URL}/projects/${selectedProject}/context_blocks/${blockId}`, dataToSend);
+      // Only send fields that are actually defined and different from the current block
+      const currentBlock = contextBlocks.find(block => block.id === blockId);
+      const filteredData = Object.fromEntries(
+        Object.entries(dataToSend).filter(([key, value]) => 
+          value !== undefined && value !== currentBlock[key]
+        )
+      );
+
+      console.log("Sending update request with data:", filteredData);
+
+      if (Object.keys(filteredData).length === 0) {
+        console.log("No changes to update");
+        return;
       }
 
-      // Update the local state
+      const response = await axios.put(`${API_URL}/projects/${selectedProject}/context_blocks/${blockId}`, filteredData);
+      
+      console.log("Update response:", response.data);
+
       setContextBlocks(prevBlocks => {
         const newBlocks = prevBlocks.map(block => 
           block.id === blockId ? { ...block, ...updatedBlock } : block
@@ -203,6 +224,11 @@ function AppContent() {
       });
     } catch (error) {
       console.error("Error updating block:", error);
+      if (error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+        console.error("Response headers:", error.response.headers);
+      }
       // Optionally, show an error message to the user
     }
   };
@@ -395,6 +421,7 @@ function AppContent() {
         setIsContextSidebarOpen={setIsContextSidebarOpen}
         contextBlocksRef={contextBlocksRef}
       />
+      <PluginManagement />
       {showAddBlockModal && <AddBlockModal onAddBlock={handleAddBlock} onClose={() => setShowAddBlockModal(false)} />}
       {showAddProjectModal && <AddProjectModal onAddProject={handleAddProject} onClose={() => setShowAddProjectModal(false)} />}
     </div>
