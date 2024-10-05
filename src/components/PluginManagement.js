@@ -21,8 +21,10 @@ const PluginManagement = () => {
         console.log('Fetched plugins:', data);
         setPlugins(data);
         data.forEach(plugin => {
-          // Assuming the component name is the same as the plugin type
-          registerPlugin(plugin.type, `${plugin.type.charAt(0).toUpperCase() + plugin.type.slice(1)}Plugin.js`);
+          // Only register the TextPlugin
+          if (plugin.type === 'text') {
+            registerPlugin(plugin.type, `TextPlugin.js`);
+          }
         });
         return; // Success, exit the function
       } catch (e) {

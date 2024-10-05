@@ -9,15 +9,11 @@ import logging
 from sqlalchemy import create_engine, Column, String, JSON, ForeignKey, inspect, Integer, func, text, Text
 from sqlalchemy.orm import sessionmaker, Session, relationship, declarative_base
 from uuid import uuid4
-from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime, timezone
 import json
-from fastapi.responses import JSONResponse, HTMLResponse, PlainTextResponse
-import ast
-import re
+from fastapi.responses import JSONResponse, HTMLResponse
 from plugins import PLUGIN_TYPES
 import importlib
-from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 # Set up logging
@@ -214,20 +210,25 @@ def initialize_plugins(db: Session):
     if not db_plugins:
         default_plugins = [
             PluginModel(name="Text", type="text"),
-            PluginModel(name="Code", type="code")
+            # Remove the Code plugin
         ]
         db.add_all(default_plugins)
         db.commit()
+
+    # Register plugins
+    for plugin_type, plugin_class in PLUGIN_TYPES.items():
+        plugin_registry.register(plugin_type, plugin_class)
 
 @app.post("/projects/{project_id}/context_blocks")
 async def add_context_block(project_id: str, block: ContextBlock, db: Session = Depends(get_db)):
     try:
         max_order = db.query(func.max(ContextBlockModel.order)).filter(ContextBlockModel.project_id == project_id).scalar() or -1
-        plugin = db.query(PluginModel).filter(PluginModel.type == block.plugin_type).first()
-        if not plugin:
+        plugin_class = PLUGIN_TYPES.get(block.plugin_type)
+        if not plugin_class:
             raise HTTPException(status_code=400, detail="Invalid plugin type")
         
-        processed_content = plugin.plugin_instance.process(block.content)
+        plugin = plugin_class()
+        processed_content = plugin.process(block.content)
         
         db_block = ContextBlockModel(
             id=str(uuid4()),
@@ -662,10 +663,14 @@ def initialize_plugins(db: Session):
     if not db_plugins:
         default_plugins = [
             PluginModel(name="Text", type="text"),
-            PluginModel(name="Code", type="code")
+            # Remove the Code plugin
         ]
         db.add_all(default_plugins)
         db.commit()
+
+    # Register plugins
+    for plugin_type, plugin_class in PLUGIN_TYPES.items():
+        plugin_registry.register(plugin_type, plugin_class)
 
 # Add other necessary endpoints (update, delete) here
 

@@ -1079,44 +1079,76 @@ button.toggleContextSidebarButton {
   background-color: var(--danger-button-hover);
 }
 
-.codePluginView {
-  background-color: var(--surface-color);
-  border-radius: var(--border-radius-medium);
-  padding: var(--padding-medium);
-  margin-bottom: var(--padding-medium);
-}
-
-.codePluginEdit {
-  background-color: var(--surface-color);
-  border-radius: var(--border-radius-medium);
-  padding: var(--padding-medium);
-  margin-bottom: var(--padding-medium);
-}
-
-.codePluginTextarea {
-  width: 100%;
-  min-height: 200px;
-  background-color: var(--background-color);
-  color: var(--text-color);
+/* Markdown Editor Styles */
+.rc-md-editor {
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-small);
-  padding: var(--padding-small);
-  font-family: 'Courier New', Courier, monospace;
-  font-size: var(--font-size-normal);
-  resize: vertical;
+  border-radius: var(--border-radius-medium);
 }
 
-.languageSelect {
-  margin-bottom: var(--padding-small);
-  padding: var(--padding-small);
+.rc-md-navigation {
+  background-color: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.rc-md-editor .editor-container {
   background-color: var(--background-color);
-  color: var(--text-color);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-small);
 }
 
-.codePluginEditButtons {
+.rc-md-editor .editor-container .sec-md .input {
+  color: var(--text-color);
+}
+
+.rc-md-editor .editor-container .sec-html .html-wrap {
+  background-color: var(--surface-color);
+  color: var(--text-color);
+}
+
+.rc-md-editor .tool-bar .button-wrap .button {
+  color: var(--text-color);
+}
+
+.rc-md-editor .tool-bar .button-wrap .button:hover {
+  color: var(--text-tertiary);
+}
+
+/* Add these styles to your existing App.module.css file */
+
+.contextBlockHeader {
   display: flex;
-  justify-content: flex-end;
-  margin-top: var(--padding-small);
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.removeButton {
+  background: none;
+  border: none;
+  color: var(--danger-button-color);
+  cursor: pointer;
+  font-size: 1.2em;
+  padding: 5px;
+  transition: color 0.3s ease;
+}
+
+.removeButton:hover {
+  color: var(--danger-button-hover);
+}
+
+.contextBlockActions {
+  display: flex;
+  gap: 5px;
+}
+
+.actionButton {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+  font-size: 1em;
+  padding: 5px;
+  transition: color 0.3s ease;
+}
+
+.actionButton:hover {
+  color: var(--accent-color);
 }
