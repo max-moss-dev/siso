@@ -989,3 +989,134 @@ button.toggleContextSidebarButton {
   transition: none; /* Disable transition during drag for smoother resizing */
   user-select: none; /* Prevent text selection during resize */
 }
+
+.codeContent {
+  background-color: #282c34;
+  border-radius: 4px;
+  padding: 1em;
+  margin-bottom: 1em;
+  cursor: pointer;
+}
+
+.codeContent pre {
+  margin: 0;
+}
+
+/* Add these styles to your existing App.module.css file */
+
+.textPluginView {
+  background-color: var(--surface-color);
+  border-radius: var(--border-radius-medium);
+  padding: var(--padding-medium);
+  margin-bottom: var(--padding-medium);
+}
+
+.textPluginEdit {
+  background-color: var(--surface-color);
+  border-radius: var(--border-radius-medium);
+  padding: var(--padding-medium);
+  margin-bottom: var(--padding-medium);
+}
+
+.textPluginTextarea {
+  width: 100%;
+  min-height: 150px;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  padding: var(--padding-small);
+  font-family: inherit;
+  font-size: var(--font-size-normal);
+  resize: vertical;
+}
+
+.textPluginEditButtons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--padding-small);
+}
+
+.editButton,
+.saveButton,
+.cancelButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--padding-small);
+  padding: var(--padding-small) var(--padding-medium);
+  border: none;
+  border-radius: var(--border-radius-small);
+  cursor: pointer;
+  font-size: var(--font-size-small);
+  transition: background-color 0.3s ease;
+}
+
+.editButton {
+  background-color: var(--secondary-button-color);
+  color: var(--text-color);
+}
+
+.editButton:hover {
+  background-color: var(--secondary-button-hover);
+}
+
+.saveButton {
+  background-color: var(--primary-button-color);
+  color: white;
+  margin-right: var(--padding-small);
+}
+
+.saveButton:hover {
+  background-color: var(--primary-button-hover);
+}
+
+.cancelButton {
+  background-color: var(--danger-button-color);
+  color: white;
+}
+
+.cancelButton:hover {
+  background-color: var(--danger-button-hover);
+}
+
+.codePluginView {
+  background-color: var(--surface-color);
+  border-radius: var(--border-radius-medium);
+  padding: var(--padding-medium);
+  margin-bottom: var(--padding-medium);
+}
+
+.codePluginEdit {
+  background-color: var(--surface-color);
+  border-radius: var(--border-radius-medium);
+  padding: var(--padding-medium);
+  margin-bottom: var(--padding-medium);
+}
+
+.codePluginTextarea {
+  width: 100%;
+  min-height: 200px;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  padding: var(--padding-small);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: var(--font-size-normal);
+  resize: vertical;
+}
+
+.languageSelect {
+  margin-bottom: var(--padding-small);
+  padding: var(--padding-small);
+  background-color: var(--background-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+}
+
+.codePluginEditButtons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--padding-small);
+}

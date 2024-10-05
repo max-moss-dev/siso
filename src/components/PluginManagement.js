@@ -1,83 +1,59 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import styles from '../App.module.css';
+import { registerPlugin } from '../plugins/registry';
 import { API_URL } from '../config';
 
-function PluginManagement() {
+const PluginManagement = () => {
   const [plugins, setPlugins] = useState([]);
-  const [newPlugin, setNewPlugin] = useState({ name: '', type: '', config: '' });
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchPlugins();
   }, []);
 
-  const fetchPlugins = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/plugins`);
-      setPlugins(response.data);
-    } catch (error) {
-      console.error("Error fetching plugins:", error);
+  const fetchPlugins = async (retries = 3, delay = 1000) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch(`${API_URL}/api/plugins`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log('Fetched plugins:', data);
+        setPlugins(data);
+        data.forEach(plugin => {
+          // Assuming the component name is the same as the plugin type
+          registerPlugin(plugin.type, `${plugin.type.charAt(0).toUpperCase() + plugin.type.slice(1)}Plugin.js`);
+        });
+        return; // Success, exit the function
+      } catch (e) {
+        console.error(`Attempt ${i + 1} failed:`, e);
+        if (i === retries - 1) {
+          setError(`Failed to load plugins after ${retries} attempts: ${e.message}`);
+        } else {
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
   };
 
-  const handleAddPlugin = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(`${API_URL}/plugins`, {
-        ...newPlugin,
-        config: JSON.parse(newPlugin.config)
-      });
-      setNewPlugin({ name: '', type: '', config: '' });
-      fetchPlugins();
-    } catch (error) {
-      console.error("Error adding plugin:", error);
-    }
-  };
-
-  const handleRemovePlugin = async (pluginId) => {
-    try {
-      await axios.delete(`${API_URL}/plugins/${pluginId}`);
-      fetchPlugins();
-    } catch (error) {
-      console.error("Error removing plugin:", error);
-    }
-  };
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   return (
-    <div className={styles.pluginManagement}>
+    <div>
       <h2>Plugin Management</h2>
-      <form onSubmit={handleAddPlugin}>
-        <input
-          type="text"
-          placeholder="Plugin Name"
-          value={newPlugin.name}
-          onChange={(e) => setNewPlugin({...newPlugin, name: e.target.value})}
-        />
-        <input
-          type="text"
-          placeholder="Plugin Type"
-          value={newPlugin.type}
-          onChange={(e) => setNewPlugin({...newPlugin, type: e.target.value})}
-        />
-        <textarea
-          placeholder="Plugin Config (JSON)"
-          value={newPlugin.config}
-          onChange={(e) => setNewPlugin({...newPlugin, config: e.target.value})}
-        />
-        <button type="submit">Add Plugin</button>
-      </form>
-      <ul>
-        {plugins.map(plugin => (
-          <li key={plugin.id}>
-            {plugin.name} ({plugin.type})
-            {plugin.type !== 'text' && (
-              <button onClick={() => handleRemovePlugin(plugin.id)}>Remove</button>
-            )}
-          </li>
-        ))}
-      </ul>
+      {plugins.length === 0 ? (
+        <p>No plugins available.</p>
+      ) : (
+        <ul>
+          {plugins.map(plugin => (
+            <li key={plugin.id}>{plugin.name} ({plugin.type})</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
-}
+};
 
 export default PluginManagement;

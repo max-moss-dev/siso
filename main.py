@@ -12,26 +12,19 @@ from uuid import uuid4
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime, timezone
 import json
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse, PlainTextResponse
 import ast
 import re
+from plugins import PLUGIN_TYPES
+import importlib
+from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-
-app = FastAPI()
-
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Initialize the OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -55,6 +48,10 @@ class PluginModel(Base):
     name = Column(String, index=True)
     type = Column(String, unique=True)
     config = Column(JSON)
+
+    @property
+    def plugin_instance(self):
+        return PLUGIN_TYPES[self.type]()
 
 class ContextBlockModel(Base):
     __tablename__ = "context_blocks"
@@ -154,8 +151,31 @@ def initialize_block_order(db: Session):
             block.order = index
     db.commit()
 
-@app.on_event("startup")
-async def startup_event():
+class PluginRegistry:
+    def __init__(self):
+        self.plugins = {}
+
+    def register(self, plugin_type, plugin_class):
+        self.plugins[plugin_type] = plugin_class
+
+    def get_plugin(self, plugin_type):
+        return self.plugins.get(plugin_type)
+
+plugin_registry = PluginRegistry()
+
+# Function to dynamically load plugins
+def load_plugins():
+    plugin_folder = 'plugins'
+    for filename in os.listdir(plugin_folder):
+        if filename.endswith('_plugin.py'):
+            module_name = f'{plugin_folder}.{filename[:-3]}'
+            module = importlib.import_module(module_name)
+            if hasattr(module, 'register_plugin'):
+                module.register_plugin(plugin_registry)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
     create_tables()
     add_order_column_if_not_exists(engine)
     add_context_update_column_if_not_exists(engine)
@@ -166,41 +186,57 @@ async def startup_event():
         if not projects:
             create_default_project(db)
         initialize_block_order(db)
-        initialize_default_plugins(db)
+        initialize_plugins(db)
     finally:
         db.close()
+    
+    yield  # This is where the app runs
+    
+    # Shutdown
+    # Add any cleanup code here if needed
+
+app = FastAPI(lifespan=lifespan)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def create_tables():
     Base.metadata.create_all(bind=engine)
 
-def initialize_default_plugins(db: Session):
-    default_plugins = [
-        {"name": "Text", "type": "text", "config": {}}
-    ]
-    for plugin in default_plugins:
-        existing_plugin = db.query(PluginModel).filter(PluginModel.type == plugin["type"]).first()
-        if existing_plugin:
-            # Update existing plugin
-            for key, value in plugin.items():
-                setattr(existing_plugin, key, value)
-        else:
-            # Create new plugin
-            db_plugin = PluginModel(**plugin)
-            db.add(db_plugin)
-    db.commit()
+def initialize_plugins(db: Session):
+    db_plugins = db.query(PluginModel).all()
+    if not db_plugins:
+        default_plugins = [
+            PluginModel(name="Text", type="text"),
+            PluginModel(name="Code", type="code")
+        ]
+        db.add_all(default_plugins)
+        db.commit()
 
 @app.post("/projects/{project_id}/context_blocks")
 async def add_context_block(project_id: str, block: ContextBlock, db: Session = Depends(get_db)):
     try:
         max_order = db.query(func.max(ContextBlockModel.order)).filter(ContextBlockModel.project_id == project_id).scalar() or -1
+        plugin = db.query(PluginModel).filter(PluginModel.type == block.plugin_type).first()
+        if not plugin:
+            raise HTTPException(status_code=400, detail="Invalid plugin type")
+        
+        processed_content = plugin.plugin_instance.process(block.content)
+        
         db_block = ContextBlockModel(
             id=str(uuid4()),
             project_id=project_id,
             title=block.title,
-            content=block.content,
+            content=processed_content,
             type=block.type,
             order=max_order + 1,
-            plugin_type=block.plugin_type  # Make sure this field exists in your ContextBlock model
+            plugin_type=block.plugin_type
         )
         db.add(db_block)
         db.commit()
@@ -586,6 +622,52 @@ def add_plugin_columns_if_not_exist(engine):
         if 'plugin_data' not in existing_columns:
             conn.execute(text("ALTER TABLE context_blocks ADD COLUMN plugin_data JSON"))
             conn.commit()
+
+@app.get("/plugins/{plugin_type}/render")
+async def render_plugin(plugin_type: str, content: str):
+    plugin_class = plugin_registry.get_plugin(plugin_type)
+    if not plugin_class:
+        raise HTTPException(status_code=404, detail="Plugin not found")
+    plugin = plugin_class()
+    rendered_content = plugin.render(content)
+    return HTMLResponse(content=rendered_content)
+
+# Add this endpoint to serve plugin component code
+@app.get("/plugins/{plugin_type}/component")
+async def get_plugin_component(plugin_type: str):
+    plugin_class = plugin_registry.get_plugin(plugin_type)
+    if not plugin_class:
+        raise HTTPException(status_code=404, detail="Plugin not found")
+    plugin = plugin_class()
+    component_code = plugin.get_component_code()
+    return {"component": component_code}
+
+# Update the Plugin model
+class Plugin(BaseModel):
+    name: str
+    component: str  # This should now be the component file name, e.g., "TextPlugin.js"
+
+plugins = []
+
+# Update the get_plugins function
+@app.get("/api/plugins")
+async def get_plugins(db: Session = Depends(get_db)):
+    plugins = db.query(PluginModel).all()
+    plugin_data = [{"id": p.id, "name": p.name, "type": p.type} for p in plugins]
+    return JSONResponse(content=plugin_data)
+
+# You may want to add a function to initialize plugins
+def initialize_plugins(db: Session):
+    db_plugins = db.query(PluginModel).all()
+    if not db_plugins:
+        default_plugins = [
+            PluginModel(name="Text", type="text"),
+            PluginModel(name="Code", type="code")
+        ]
+        db.add_all(default_plugins)
+        db.commit()
+
+# Add other necessary endpoints (update, delete) here
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import styles from '../App.module.css';
 import axios from 'axios';
 import { API_URL } from '../config';
+import styles from '../App.module.css';
 
 function AddBlockModal({ onAddBlock, onClose }) {
   const [blockTitle, setBlockTitle] = useState('');
@@ -15,13 +15,8 @@ function AddBlockModal({ onAddBlock, onClose }) {
   const fetchPlugins = async () => {
     try {
       const response = await axios.get(`${API_URL}/plugins`);
-      console.log("Fetched plugins:", response.data);
       setPlugins(response.data);
-      // Set the default selected plugin to 'text' if available
-      const textPlugin = response.data.find(p => p.type === 'text');
-      if (textPlugin) {
-        setSelectedPlugin(textPlugin.type);
-      } else if (response.data.length > 0) {
+      if (response.data.length > 0) {
         setSelectedPlugin(response.data[0].type);
       }
     } catch (error) {
@@ -31,9 +26,8 @@ function AddBlockModal({ onAddBlock, onClose }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (blockTitle.trim() && selectedPlugin) {
-      onAddBlock(blockTitle.trim(), selectedPlugin);
-      setBlockTitle('');
+    if (blockTitle && selectedPlugin) {
+      onAddBlock(blockTitle, selectedPlugin);
       onClose();
     }
   };
@@ -48,24 +42,19 @@ function AddBlockModal({ onAddBlock, onClose }) {
             value={blockTitle}
             onChange={(e) => setBlockTitle(e.target.value)}
             placeholder="Enter block title"
-            className={styles.input}
             required
           />
           <select
             value={selectedPlugin}
             onChange={(e) => setSelectedPlugin(e.target.value)}
-            className={styles.select}
             required
           >
-            <option value="">Select a plugin</option>
             {plugins.map(plugin => (
               <option key={plugin.id} value={plugin.type}>{plugin.name}</option>
             ))}
           </select>
-          <div className={styles.modalButtons}>
-            <button type="submit" className={`${styles.button} ${styles.primaryButton}`}>Add</button>
-            <button type="button" onClick={onClose} className={`${styles.button} ${styles.secondaryButton}`}>Cancel</button>
-          </div>
+          <button type="submit">Add Block</button>
+          <button type="button" onClick={onClose}>Cancel</button>
         </form>
       </div>
     </div>
