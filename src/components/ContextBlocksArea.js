@@ -37,9 +37,9 @@ function ContextBlocksArea({ contextBlocks, isLoading, onUpdateBlock, onDeleteBl
           key={block.id} // Ensure key is unique
           block={block}
           onUpdate={onUpdateBlock}
-          onDelete={onDeleteBlock}
-          onGenerateContent={onGenerateContent}
-          onFixContent={onFixContent}
+          onDelete={() => onDeleteBlock(block.id)}  // Make sure this line is correct
+          onGenerateContent={() => onGenerateContent(block.id)}
+          onFixContent={() => onFixContent(block.id)}
           onMoveUp={() => moveBlockUp(block.id)}
           onMoveDown={() => moveBlockDown(block.id)}
           isFirst={index === 0}

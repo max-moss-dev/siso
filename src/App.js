@@ -200,6 +200,8 @@ function AppContent() {
       setContextBlocks(contextBlocks.filter(block => block.id !== blockId));
     } catch (error) {
       console.error("Error deleting block:", error);
+      // Optionally, show an error message to the user
+      alert(`Failed to delete block: ${error.response?.data?.detail || error.message}`);
     }
   };
 
