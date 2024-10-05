@@ -31,6 +31,8 @@ const PluginManagement = () => {
         console.log(`Registering plugin from API: ${plugin.name} (${plugin.type}) with URL: ${plugin.url}`);
         registerPlugin(plugin.type, plugin.name, plugin.url);
       });
+      // Remove the line that was causing the error
+      // console.log('Current plugin registry:', pluginRegistry);
     } catch (e) {
       console.error(`Failed to load plugins: ${e.message}`);
       setError(`Failed to load plugins: ${e.message}`);

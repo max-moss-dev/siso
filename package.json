@@ -2,11 +2,10 @@
   "name": "siso",
   "version": "1.0.0",
   "scripts": {
-    "start-react": "npm run build-plugins && react-scripts start",
+    "start-react": "react-scripts start",
     "start-python": "node scripts/start-python.js",
-    "build-plugins": "webpack --config webpack.plugins.config.js",
-    "start": "npm run build-plugins && concurrently \"npm run start-python\" \"npm run start-react\"",
-    "build": "npm run build-plugins && react-scripts build",
+    "start": "concurrently \"npm run start-python\" \"npm run start-react\"",
+    "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "set-python-path": "node -e \"console.log('PYTHON_PATH=' + require('child_process').execSync('which python').toString().trim())\" > .env.local"

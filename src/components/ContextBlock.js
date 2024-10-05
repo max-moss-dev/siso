@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../App.module.css';
 import { getPlugin } from '../plugins/registry';
 import { FaTrash, FaArrowUp, FaArrowDown, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
@@ -17,35 +17,24 @@ const ContextBlock = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(block.title);
+  const [localContent, setLocalContent] = useState(block.content);
 
-  const handleUpdate = (newContent) => {
-    onUpdate(block.id, { ...block, content: newContent });
-  };
+  useEffect(() => {
+    setLocalContent(block.content);
+  }, [block.content]);
 
-  const handleDelete = () => {
-    onDelete(block.id);
-  };
-
-  const handleGenerateContent = async () => {
-    const generatedContent = await onGenerateContent(block.id, block.content);
-    onUpdate(block.id, { ...block, content: generatedContent });
-  };
-
-  const handleFixContent = async () => {
-    const fixedContent = await onFixContent(block.id, block.content);
-    onUpdate(block.id, { ...block, content: fixedContent });
-  };
-
-  const handleMentionInChat = () => {
-    onMentionInChat(block.id, block.title);
-  };
+  const handleUpdate = useCallback((newContent) => {
+    console.log('ContextBlock received update:', newContent);
+    setLocalContent(newContent);
+    onUpdate({ ...block, content: newContent });
+  }, [block, onUpdate]);
 
   const handleEditTitle = () => {
     setIsEditing(true);
   };
 
   const handleSaveTitle = () => {
-    onUpdate(block.id, { ...block, title: editedTitle });
+    onUpdate({ ...block, title: editedTitle });
     setIsEditing(false);
   };
 
@@ -55,7 +44,7 @@ const ContextBlock = ({
   };
 
   const plugin = getPlugin(block.plugin_type);
-  const PluginComponent = plugin.component;
+  const PluginComponent = plugin ? plugin.component : () => <div>Unsupported plugin type: {block.plugin_type}</div>;
 
   return (
     <div className={styles.contextBlock}>
@@ -84,13 +73,13 @@ const ContextBlock = ({
           </>
         )}
         <div className={styles.contextBlockActions}>
-          <button onClick={handleMentionInChat} className={styles.actionButton} title="Mention in Chat">
+          <button onClick={() => onMentionInChat(block.id, block.title)} className={styles.actionButton} title="Mention in Chat">
             @
           </button>
-          <button onClick={handleGenerateContent} className={styles.actionButton} title="Generate Content">
+          <button onClick={onGenerateContent} className={styles.actionButton} title="Generate Content">
             Gen
           </button>
-          <button onClick={handleFixContent} className={styles.actionButton} title="Fix Content">
+          <button onClick={onFixContent} className={styles.actionButton} title="Fix Content">
             Fix
           </button>
           {!isFirst && (
@@ -103,14 +92,18 @@ const ContextBlock = ({
               <FaArrowDown />
             </button>
           )}
-          <button onClick={handleDelete} className={styles.removeButton} title="Delete">
+          <button onClick={onDelete} className={styles.removeButton} title="Delete">
             <FaTrash />
           </button>
         </div>
       </div>
-      <PluginComponent content={block.content} onUpdate={handleUpdate} />
+      <PluginComponent 
+        content={localContent} 
+        onUpdate={handleUpdate} 
+        blockId={block.id}
+      />
     </div>
   );
 };
 
-export default ContextBlock;
+export default React.memo(ContextBlock);

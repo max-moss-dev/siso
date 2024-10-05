@@ -8,10 +8,10 @@ import ContextSidebarIcon from './ContextSidebarIcon';
 function MainArea({ 
   projectName, 
   projectId, 
-  contextBlocks, 
+  contextBlocks: initialContextBlocks,
   isLoading, 
   onAddBlock, 
-  onUpdateBlock, 
+  onUpdateBlock: parentOnUpdateBlock,
   onDeleteBlock, 
   onGenerateContent, 
   onFixContent, 
@@ -35,6 +35,7 @@ function MainArea({
   isContextSidebarOpen,
   setIsContextSidebarOpen,
 }) {
+  const [contextBlocks, setContextBlocks] = useState(initialContextBlocks);
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(projectName);
   const [canEdit, setCanEdit] = useState(true);
@@ -44,7 +45,6 @@ function MainArea({
   });
   const [isDragging, setIsDragging] = useState(false);
   const contextBlocksColumnRef = useRef(null);
-  const contextBlockRefs = useRef({});
 
   useEffect(() => {
     setEditedName(projectName);
@@ -54,9 +54,12 @@ function MainArea({
     localStorage.setItem('contextSidebarWidth', contextSidebarWidth.toString());
   }, [contextSidebarWidth]);
 
+  useEffect(() => {
+    setContextBlocks(initialContextBlocks);
+  }, [initialContextBlocks]);
+
   const pendingUpdatesCount = contextBlocks.filter(block => block.pendingContent).length;
 
-  // Add this useEffect to open the sidebar when there are pending updates
   useEffect(() => {
     if (pendingUpdatesCount > 0 && !isContextSidebarOpen) {
       setIsContextSidebarOpen(true);
@@ -110,10 +113,25 @@ function MainArea({
     document.addEventListener('mouseup', stopDrag);
   };
 
+  const handleUpdateBlock = useCallback((updatedBlock) => {
+    console.log('MainArea updating block:', updatedBlock);
+    setContextBlocks(prevBlocks =>
+      prevBlocks.map(block =>
+        block.id === updatedBlock.id ? { ...block, ...updatedBlock } : block
+      )
+    );
+    parentOnUpdateBlock(updatedBlock);
+  }, [parentOnUpdateBlock]);
+
   const expandContextBlock = useCallback((blockId) => {
-    onUpdateBlock(blockId, { isCollapsed: false });
-    localStorage.setItem('isContextSidebarOpen', true);
-  }, [onUpdateBlock]);
+    handleUpdateBlock({ id: blockId, isCollapsed: false });
+    localStorage.setItem('isContextSidebarOpen', 'true');
+  }, [handleUpdateBlock]);
+
+  const handleReorderBlocks = useCallback((newBlocks) => {
+    setContextBlocks(newBlocks);
+    onReorderBlocks(newBlocks);
+  }, [onReorderBlocks]);
 
   return (
     <div className={styles.mainContent}>
@@ -190,7 +208,7 @@ function MainArea({
             toggleContextSidebar={toggleContextSidebar}
             setIsContextSidebarOpen={setIsContextSidebarOpen}
             expandContextBlock={expandContextBlock}
-            onUpdateBlock={onUpdateBlock}
+            onUpdateBlock={handleUpdateBlock}
           />
         </div>
         {isContextSidebarOpen && (
@@ -223,14 +241,13 @@ function MainArea({
           <ContextBlocksArea 
             contextBlocks={contextBlocks}
             isLoading={isLoading}
-            onUpdateBlock={onUpdateBlock}
+            onUpdateBlock={handleUpdateBlock}
             onDeleteBlock={onDeleteBlock}
             onGenerateContent={onGenerateContent}
             onFixContent={onFixContent}
-            onReorderBlocks={onReorderBlocks}
+            onReorderBlocks={handleReorderBlocks}
             onAddBlock={onAddBlock}
             onMentionInChat={handleMentionInChat}
-            contextBlockRefs={contextBlockRefs}
           />
         </div>
       </div>

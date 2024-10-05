@@ -203,51 +203,17 @@ function AppContent() {
     }
   };
 
-  const handleUpdateBlock = async (blockId, updatedBlock) => {
+  const handleUpdateBlock = async (updatedBlock) => {
+    console.log('App received block update:', updatedBlock);
     try {
-      const dataToSend = {
-        title: updatedBlock.title,
-        content: updatedBlock.content,
-        type: updatedBlock.type,
-        plugin_type: updatedBlock.plugin_type,
-        isCollapsed: updatedBlock.isCollapsed
-      };
-
-      // Only send fields that are actually defined and different from the current block
-      const currentBlock = contextBlocks.find(block => block.id === blockId);
-      const filteredData = Object.fromEntries(
-        Object.entries(dataToSend).filter(([key, value]) => 
-          value !== undefined && value !== currentBlock[key]
+      await axios.put(`${API_URL}/projects/${selectedProject}/context_blocks/${updatedBlock.id}`, updatedBlock);
+      setContextBlocks(prevBlocks =>
+        prevBlocks.map(block =>
+          block.id === updatedBlock.id ? { ...block, ...updatedBlock } : block
         )
       );
-
-      console.log("Sending update request with data:", filteredData);
-
-      if (Object.keys(filteredData).length === 0) {
-        console.log("No changes to update");
-        return;
-      }
-
-      const response = await axios.put(`${API_URL}/projects/${selectedProject}/context_blocks/${blockId}`, filteredData);
-      
-      console.log("Update response:", response.data);
-
-      setContextBlocks(prevBlocks => {
-        const newBlocks = prevBlocks.map(block => 
-          block.id === blockId ? { ...block, ...updatedBlock } : block
-        );
-        setBlockHistory(prev => [...prev.slice(0, historyIndex + 1), newBlocks]);
-        setHistoryIndex(prev => prev + 1);
-        return newBlocks;
-      });
     } catch (error) {
       console.error("Error updating block:", error);
-      if (error.response) {
-        console.error("Response data:", error.response.data);
-        console.error("Response status:", error.response.status);
-        console.error("Response headers:", error.response.headers);
-      }
-      // Optionally, show an error message to the user
     }
   };
 

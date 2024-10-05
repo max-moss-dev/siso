@@ -3,35 +3,36 @@ import { API_URL } from '../config';
 
 const pluginRegistry = {};
 
-const PluginComponent = React.memo(function PluginComponent({ content, onUpdate, url, name }) {
+const PluginComponent = React.memo(function PluginComponent({ content, onUpdate, url, name, blockId }) {
   console.log(`Rendering PluginComponent for ${name} with URL: ${url}`);
   const iframeRef = useRef(null);
 
   useEffect(() => {
     const handleMessage = (event) => {
-      if (event.data.type === 'update') {
+      console.log('PluginComponent received message:', event.data);
+      if (event.data.type === `update_${blockId}`) {
         onUpdate(event.data.content);
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [onUpdate]);
+  }, [onUpdate, blockId]);
 
   useEffect(() => {
     if (iframeRef.current) {
-      iframeRef.current.contentWindow.postMessage({ type: 'setContent', content }, '*');
+      iframeRef.current.contentWindow.postMessage({ type: `setContent_${blockId}`, content }, '*');
     }
-  }, [content]);
+  }, [content, blockId]);
 
   return (
     <iframe
       ref={iframeRef}
-      src={`${API_URL}${url}`}
+      src={`${API_URL}${url}?blockId=${blockId}`}
       style={{ width: '100%', height: '300px', border: 'none' }}
       title={`${name} Plugin`}
       onLoad={(e) => {
-        e.target.contentWindow.postMessage({ type: 'setContent', content }, '*');
+        e.target.contentWindow.postMessage({ type: `setContent_${blockId}`, content }, '*');
       }}
     />
   );
