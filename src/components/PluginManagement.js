@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { registerPlugin } from '../plugins/registry';
 import { API_URL } from '../config';
+import styles from '../App.module.css';
 
 const PluginManagement = () => {
   const [plugins, setPlugins] = useState([]);
@@ -21,12 +22,11 @@ const PluginManagement = () => {
         console.log('Fetched plugins:', data);
         setPlugins(data);
         data.forEach(plugin => {
-          // Only register the TextPlugin
           if (plugin.type === 'text') {
             registerPlugin(plugin.type, `TextPlugin.js`);
           }
         });
-        return; // Success, exit the function
+        return;
       } catch (e) {
         console.error(`Attempt ${i + 1} failed:`, e);
         if (i === retries - 1) {
@@ -39,18 +39,20 @@ const PluginManagement = () => {
   };
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div className={styles.pluginError}>Error: {error}</div>;
   }
 
   return (
-    <div>
-      <h2>Plugin Management</h2>
+    <div className={styles.pluginManagement}>
+      <h3>Context plugins</h3>
       {plugins.length === 0 ? (
         <p>No plugins available.</p>
       ) : (
-        <ul>
+        <ul className={styles.pluginList}>
           {plugins.map(plugin => (
-            <li key={plugin.id}>{plugin.name} ({plugin.type})</li>
+            <li key={plugin.id} className={styles.pluginItem}>
+              {plugin.name} ({plugin.type})
+            </li>
           ))}
         </ul>
       )}

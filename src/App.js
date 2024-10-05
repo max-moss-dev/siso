@@ -6,7 +6,6 @@ import Sidebar from './components/Sidebar';
 import MainArea from './components/MainArea';
 import AddBlockModal from './components/AddBlockModal';
 import AddProjectModal from './components/AddProjectModal';
-import PluginManagement from './components/PluginManagement';
 import { API_URL } from './config';
 
 function AppContent() {
@@ -421,7 +420,6 @@ function AppContent() {
         setIsContextSidebarOpen={setIsContextSidebarOpen}
         contextBlocksRef={contextBlocksRef}
       />
-      <PluginManagement />
       {showAddBlockModal && <AddBlockModal onAddBlock={handleAddBlock} onClose={() => setShowAddBlockModal(false)} />}
       {showAddProjectModal && <AddProjectModal onAddProject={handleAddProject} onClose={() => setShowAddProjectModal(false)} />}
     </div>

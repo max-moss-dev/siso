@@ -56,11 +56,14 @@ body {
 }
 
 .sidebar {
-  width: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 280px;
   background-color: var(--sidebar-bg);
-  padding: var(--padding-medium) var(--padding-large);
+  padding: 0;
   box-sizing: border-box;
-  overflow-y: auto;
+  overflow-y: hidden;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease-in-out;
 }
@@ -71,7 +74,7 @@ body {
 
 .sidebarClosed {
   width: 0;
-  padding: var(--padding-medium) 0;
+  padding: 0;
   overflow: hidden;
 }
 
@@ -1151,4 +1154,145 @@ button.toggleContextSidebarButton {
 
 .actionButton:hover {
   color: var(--accent-color);
+}
+
+/* Add these styles to your existing App.module.css file */
+
+.sidebarDivider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 20px 0;
+}
+
+.pluginManagement {
+  padding: 10px;
+}
+
+.pluginManagement h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: var(--font-size-large);
+}
+
+.pluginList {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pluginItem {
+  padding: 5px 0;
+  font-size: var(--font-size-small);
+}
+
+.pluginError {
+  color: var(--danger-button-color);
+  font-size: var(--font-size-small);
+  margin-top: 10px;
+}
+
+/* You might need to adjust the sidebar width to accommodate the new content */
+.sidebar {
+  width: 280px; /* Increase from previous value if needed */
+}
+
+.projectsContainer {
+  margin-bottom: var(--padding-large);
+}
+
+.projectsContainer h2 {
+  margin-bottom: var(--padding-medium);
+}
+
+/* Add these styles to your existing App.module.css file */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sidebarContent {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.navButton {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: var(--padding-small);
+  border-radius: var(--border-radius-small);
+  transition: color 0.3s ease;
+}
+
+.navButton:hover {
+  color: var(--text-color);
+}
+
+.navButton.active {
+  color: white;
+}
+
+/* You might need to adjust these existing styles */
+.sidebar {
+  width: 280px;
+  background-color: var(--sidebar-bg);
+  padding: 0; /* Remove padding here */
+  box-sizing: border-box;
+  overflow-y: hidden; /* Change from auto to hidden */
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease-in-out;
+}
+
+.sidebarOpen {
+  width: 280px;
+}
+
+.sidebarClosed {
+  width: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.projectsContainer, .pluginManagement {
+  padding: var(--padding-medium);
+}
+
+.sidebarContent {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: var(--padding-medium);
+}
+
+.sidebarNavigation {
+  display: flex;
+  justify-content: center;
+  padding: var(--padding-small) 0;
+}
+
+.navButton {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: var(--padding-small);
+  margin: 0 var(--padding-small);
+  border-radius: var(--border-radius-small);
+  transition: color 0.3s ease;
+}
+
+.navButton:hover {
+  color: var(--text-color);
+}
+
+.navButton.active {
+  color: white;
+}
+
+.projectsContainer, .pluginManagement {
+  padding-top: var(--padding-medium);
 }
