@@ -156,7 +156,7 @@ function AppContent() {
   const handleAddBlock = async (blockTitle, pluginType) => {
     const newBlock = {
       title: blockTitle,
-      content: '',
+      content: '',  // Start with empty content
       type: pluginType,
       plugin_type: pluginType,
     };
@@ -172,6 +172,8 @@ function AppContent() {
         console.error("Response status:", error.response.status);
         console.error("Response headers:", error.response.headers);
       }
+      // Optionally, show an error message to the user
+      alert(`Failed to add new block: ${error.response?.data?.detail || error.message}`);
     }
   };
 

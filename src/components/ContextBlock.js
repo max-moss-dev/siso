@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import styles from '../App.module.css';
-import pluginRegistry from '../plugins/registry';
+import { getPlugin } from '../plugins/registry';
 import { FaTrash, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 
 const ContextBlock = ({ 
@@ -37,11 +37,8 @@ const ContextBlock = ({
     onMentionInChat(block.id, block.title);
   };
 
-  const PluginComponent = pluginRegistry[block.plugin_type];
-
-  if (!PluginComponent) {
-    return <div className={styles.errorMessage}>Unsupported plugin type: {block.plugin_type}</div>;
-  }
+  const plugin = getPlugin(block.plugin_type);
+  const PluginComponent = plugin ? plugin.component : () => <div>Unsupported plugin type: {block.plugin_type}</div>;
 
   return (
     <div className={styles.contextBlock}>

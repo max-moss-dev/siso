@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Path
+from fastapi import FastAPI, HTTPException, Depends, Path, Body, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Union, Any
@@ -12,9 +12,10 @@ from uuid import uuid4
 from datetime import datetime, timezone
 import json
 from fastapi.responses import JSONResponse, HTMLResponse
-from plugins import PLUGIN_TYPES
-import importlib
 from contextlib import asynccontextmanager
+from sqlalchemy.exc import IntegrityError
+import importlib.util
+from fastapi.staticfiles import StaticFiles
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -43,11 +44,8 @@ class PluginModel(Base):
     id = Column(String, primary_key=True, index=True, default=lambda: str(uuid4()))
     name = Column(String, index=True)
     type = Column(String, unique=True)
-    config = Column(JSON)
-
-    @property
-    def plugin_instance(self):
-        return PLUGIN_TYPES[self.type]()
+    code = Column(Text, nullable=True)
+    config = Column(JSON, nullable=True)
 
 class ContextBlockModel(Base):
     __tablename__ = "context_blocks"
@@ -151,8 +149,8 @@ class PluginRegistry:
     def __init__(self):
         self.plugins = {}
 
-    def register(self, plugin_type, plugin_class):
-        self.plugins[plugin_type] = plugin_class
+    def register(self, plugin_type, plugin_factory):
+        self.plugins[plugin_type] = plugin_factory()
 
     def get_plugin(self, plugin_type):
         return self.plugins.get(plugin_type)
@@ -169,27 +167,21 @@ def load_plugins():
             if hasattr(module, 'register_plugin'):
                 module.register_plugin(plugin_registry)
 
+def create_tables():
+    Base.metadata.create_all(bind=engine)
+
+def initialize_database():
+    create_tables()
+    db = SessionLocal()
+    initialize_plugins(db)
+    db.close()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    create_tables()
-    add_order_column_if_not_exists(engine)
-    add_context_update_column_if_not_exists(engine)
-    add_plugin_columns_if_not_exist(engine)
-    db = SessionLocal()
-    try:
-        projects = db.query(ProjectModel).all()
-        if not projects:
-            create_default_project(db)
-        initialize_block_order(db)
-        initialize_plugins(db)
-    finally:
-        db.close()
-    
-    yield  # This is where the app runs
-    
+    initialize_database()
+    yield
     # Shutdown
-    # Add any cleanup code here if needed
 
 app = FastAPI(lifespan=lifespan)
 
@@ -202,33 +194,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def create_tables():
-    Base.metadata.create_all(bind=engine)
+# Make sure to call this when your app starts
+@app.on_event("startup")
+async def startup_event():
+    load_plugins()
+    db = SessionLocal()
+    initialize_plugins(db)
+    db.close()
 
 def initialize_plugins(db: Session):
     db_plugins = db.query(PluginModel).all()
-    if not db_plugins:
-        default_plugins = [
-            PluginModel(name="Text", type="text"),
-            # Remove the Code plugin
-        ]
-        db.add_all(default_plugins)
-        db.commit()
+    # We're not adding any default plugins here anymore
+    
+    # Load plugins from the database and register them
+    for plugin in db_plugins:
+        plugin_registry.register(plugin.type, lambda: type('Plugin', (), {
+            'process': lambda self, content: content,
+            'render': lambda self, content: f"<div>{content}</div>"
+        })())
 
-    # Register plugins
-    for plugin_type, plugin_class in PLUGIN_TYPES.items():
-        plugin_registry.register(plugin_type, plugin_class)
+    load_plugins()
+
+class ContextBlockCreate(BaseModel):
+    title: str
+    content: str
+    type: str
+    plugin_type: str
 
 @app.post("/projects/{project_id}/context_blocks")
-async def add_context_block(project_id: str, block: ContextBlock, db: Session = Depends(get_db)):
+async def add_context_block(project_id: str, block: ContextBlockCreate, db: Session = Depends(get_db)):
     try:
-        max_order = db.query(func.max(ContextBlockModel.order)).filter(ContextBlockModel.project_id == project_id).scalar() or -1
-        plugin_class = PLUGIN_TYPES.get(block.plugin_type)
-        if not plugin_class:
-            raise HTTPException(status_code=400, detail="Invalid plugin type")
+        project = db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        plugin = plugin_registry.get_plugin(block.plugin_type)
+        if not plugin:
+            raise HTTPException(status_code=400, detail=f"Invalid plugin type: {block.plugin_type}. Available types: {list(plugin_registry.plugins.keys())}")
         
-        plugin = plugin_class()
-        processed_content = plugin.process(block.content)
+        try:
+            processed_content = plugin.process(block.content)
+        except Exception as process_error:
+            logger.error(f"Error processing content with plugin: {str(process_error)}")
+            raise HTTPException(status_code=422, detail=f"Error processing content: {str(process_error)}")
+        
+        max_order = db.query(func.max(ContextBlockModel.order)).filter(ContextBlockModel.project_id == project_id).scalar() or -1
         
         db_block = ContextBlockModel(
             id=str(uuid4()),
@@ -243,9 +253,11 @@ async def add_context_block(project_id: str, block: ContextBlock, db: Session = 
         db.commit()
         db.refresh(db_block)
         return db_block
+    except HTTPException as http_error:
+        raise http_error
     except Exception as e:
         logger.error(f"Error adding context block: {str(e)}")
-        raise HTTPException(status_code=422, detail=f"Unable to process request: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.get("/projects/{project_id}/context_blocks")
 async def get_context_blocks(project_id: str, db: Session = Depends(get_db)):
@@ -602,7 +614,8 @@ async def add_plugin(plugin: PluginCreate, db: Session = Depends(get_db)):
 @app.get("/plugins")
 async def get_plugins(db: Session = Depends(get_db)):
     plugins = db.query(PluginModel).all()
-    return [{"id": plugin.id, "name": plugin.name, "type": plugin.type} for plugin in plugins]
+    plugin_data = [{"id": p.id, "name": p.name, "type": p.type} for p in plugins]
+    return JSONResponse(content=plugin_data)
 
 @app.delete("/plugins/{plugin_id}")
 async def delete_plugin(plugin_id: str, db: Session = Depends(get_db)):
@@ -650,29 +663,129 @@ class Plugin(BaseModel):
 
 plugins = []
 
-# Update the get_plugins function
-@app.get("/api/plugins")
-async def get_plugins(db: Session = Depends(get_db)):
-    plugins = db.query(PluginModel).all()
-    plugin_data = [{"id": p.id, "name": p.name, "type": p.type} for p in plugins]
-    return JSONResponse(content=plugin_data)
-
 # You may want to add a function to initialize plugins
 def initialize_plugins(db: Session):
     db_plugins = db.query(PluginModel).all()
-    if not db_plugins:
-        default_plugins = [
-            PluginModel(name="Text", type="text"),
-            # Remove the Code plugin
-        ]
-        db.add_all(default_plugins)
-        db.commit()
+    # We're not adding any default plugins here anymore
+    
+    # Load plugins from the database and register them
+    for plugin in db_plugins:
+        plugin_registry.register(plugin.type, lambda: type('Plugin', (), {
+            'process': lambda self, content: content,
+            'render': lambda self, content: f"<div>{content}</div>"
+        })())
 
-    # Register plugins
-    for plugin_type, plugin_class in PLUGIN_TYPES.items():
-        plugin_registry.register(plugin_type, plugin_class)
+    load_plugins()
 
 # Add other necessary endpoints (update, delete) here
+
+# Add this new endpoint
+@app.post("/api/plugins", response_model=dict)
+async def add_plugin(
+    name: str = Form(...),
+    type: str = Form(...),
+    file: UploadFile = File(...)
+):
+    try:
+        # Ensure the plugins directory exists
+        os.makedirs(PLUGIN_DIR, exist_ok=True)
+        
+        file_path = os.path.join(PLUGIN_DIR, f"{type}.js")
+        
+        # Write the uploaded file content
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+        
+        # Add the plugin to the database
+        db = SessionLocal()
+        new_plugin = PluginModel(name=name, type=type, code=file_path)
+        db.add(new_plugin)
+        db.commit()
+        db.refresh(new_plugin)
+        db.close()
+        
+        return {
+            "message": "Plugin added successfully",
+            "plugin": {
+                "id": new_plugin.id,
+                "name": new_plugin.name,
+                "type": new_plugin.type,
+                "url": f"/plugins/{new_plugin.type}.js"
+            }
+        }
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail="Plugin type already exists")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+# Update the get_plugins function to return the plugin code
+@app.get("/api/plugins")
+async def get_plugins(db: Session = Depends(get_db)):
+    plugins = db.query(PluginModel).all()
+    return [{"id": p.id, "name": p.name, "type": p.type, "code": p.code} for p in plugins]
+
+@app.delete("/api/plugins/{plugin_id}")
+async def delete_plugin(plugin_id: str, db: Session = Depends(get_db)):
+    plugin = db.query(PluginModel).filter(PluginModel.id == plugin_id).first()
+    if not plugin:
+        raise HTTPException(status_code=404, detail="Plugin not found")
+    
+    db.delete(plugin)
+    db.commit()
+    
+    # Remove the plugin from the registry
+    plugin_registry.plugins.pop(plugin.type, None)
+    
+    return {"message": "Plugin deleted successfully"}
+
+# Create a directory to store plugins if it doesn't exist
+PLUGIN_DIR = "plugins"
+os.makedirs(PLUGIN_DIR, exist_ok=True)
+
+# Mount the plugins directory
+app.mount("/plugins", StaticFiles(directory=PLUGIN_DIR), name="plugins")
+
+# Update the add_plugin endpoint
+@app.post("/api/plugins")
+async def add_plugin(name: str, type: str, file: UploadFile = File(...)):
+    file_path = os.path.join(PLUGIN_DIR, f"{type}.js")
+    
+    with open(file_path, "wb") as buffer:
+        content = await file.read()
+        buffer.write(content)
+    
+    db = SessionLocal()
+    new_plugin = PluginModel(name=name, type=type, code=file_path)
+    db.add(new_plugin)
+    db.commit()
+    db.refresh(new_plugin)
+    db.close()
+    
+    return {"message": "Plugin added successfully", "plugin": new_plugin}
+
+# Update the get_plugins endpoint
+@app.get("/api/plugins")
+async def get_plugins(db: Session = Depends(get_db)):
+    plugins = db.query(PluginModel).all()
+    return [{"id": p.id, "name": p.name, "type": p.type, "url": f"/plugins/{p.type}.js"} for p in plugins]
+
+# Update the delete_plugin endpoint
+@app.delete("/api/plugins/{plugin_id}")
+async def delete_plugin(plugin_id: str, db: Session = Depends(get_db)):
+    plugin = db.query(PluginModel).filter(PluginModel.id == plugin_id).first()
+    if not plugin:
+        raise HTTPException(status_code=404, detail="Plugin not found")
+    
+    # Remove the plugin file
+    file_path = os.path.join(PLUGIN_DIR, f"{plugin.type}.js")
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    
+    db.delete(plugin)
+    db.commit()
+    
+    return {"message": "Plugin deleted successfully"}
 
 if __name__ == "__main__":
     import uvicorn

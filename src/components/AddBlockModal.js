@@ -14,7 +14,7 @@ function AddBlockModal({ onAddBlock, onClose }) {
 
   const fetchPlugins = async () => {
     try {
-      const response = await axios.get(`${API_URL}/plugins`);
+      const response = await axios.get(`${API_URL}/api/plugins`);
       setPlugins(response.data);
       if (response.data.length > 0) {
         setSelectedPlugin(response.data[0].type);

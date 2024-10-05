@@ -3,8 +3,7 @@ const path = require('path');
 module.exports = {
   mode: 'production',
   entry: {
-    text: './src/plugins/TextPlugin.js',
-    // Remove the code entry for now
+    // Remove all entries
   },
   output: {
     filename: '[name]Plugin.js',

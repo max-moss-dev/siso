@@ -1296,3 +1296,63 @@ button.toggleContextSidebarButton {
 .projectsContainer, .pluginManagement {
   padding-top: var(--padding-medium);
 }
+
+/* Add these styles to your existing App.module.css file */
+
+.addPluginForm {
+  margin-top: var(--padding-medium);
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding-small);
+}
+
+.pluginInput {
+  padding: var(--padding-small);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.pluginInput::placeholder {
+  color: var(--text-secondary);
+}
+
+/* Add these styles to your existing App.module.css file */
+
+.addPluginForm {
+  margin-top: var(--padding-medium);
+  display: flex;
+  flex-direction: column;
+  gap: var(--padding-medium);
+}
+
+.addPluginForm button {
+  align-self: flex-start;
+}
+
+.pluginCodeInput {
+  width: 100%;
+  min-height: 200px;
+  padding: var(--padding-small);
+  margin-bottom: var(--padding-medium);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: monospace;
+  resize: vertical;
+}
+
+.pluginItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  font-size: var(--font-size-small);
+}
+
+.pluginItem button {
+  padding: 2px 5px;
+  font-size: 0.8em;
+}
