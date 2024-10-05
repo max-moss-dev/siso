@@ -4,7 +4,6 @@ import { API_URL } from '../config';
 import styles from '../App.module.css';
 
 function AddBlockModal({ onAddBlock, onClose }) {
-  const [blockTitle, setBlockTitle] = useState('');
   const [plugins, setPlugins] = useState([]);
   const [selectedPlugin, setSelectedPlugin] = useState('');
 
@@ -26,7 +25,8 @@ function AddBlockModal({ onAddBlock, onClose }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (blockTitle && selectedPlugin) {
+    if (selectedPlugin) {
+      const blockTitle = `New ${selectedPlugin.charAt(0).toUpperCase() + selectedPlugin.slice(1)} Block`;
       onAddBlock(blockTitle, selectedPlugin);
       onClose();
     }
@@ -36,25 +36,21 @@ function AddBlockModal({ onAddBlock, onClose }) {
     <div className={styles.modal}>
       <div className={styles.modalContent}>
         <h2>Add New Block</h2>
-        <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            value={blockTitle}
-            onChange={(e) => setBlockTitle(e.target.value)}
-            placeholder="Enter block title"
-            required
-          />
+        <form onSubmit={handleSubmit} className={styles.addBlockForm}>
           <select
             value={selectedPlugin}
             onChange={(e) => setSelectedPlugin(e.target.value)}
             required
+            className={styles.select}
           >
             {plugins.map(plugin => (
               <option key={plugin.id} value={plugin.type}>{plugin.name}</option>
             ))}
           </select>
-          <button type="submit">Add Block</button>
-          <button type="button" onClick={onClose}>Cancel</button>
+          <div className={styles.modalButtons}>
+            <button type="submit" className={`${styles.button} ${styles.primaryButton}`}>Add Block</button>
+            <button type="button" onClick={onClose} className={`${styles.button} ${styles.secondaryButton}`}>Cancel</button>
+          </div>
         </form>
       </div>
     </div>

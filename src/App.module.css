@@ -34,6 +34,7 @@
   --transition-speed: 0.3s;
   --sidebar-width: 250px;
   --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  --accent-color-rgb: 105, 104, 104; /* This should match your accent color */
 }
 
 body {
@@ -1355,4 +1356,105 @@ button.toggleContextSidebarButton {
 .pluginItem button {
   padding: 2px 5px;
   font-size: 0.8em;
+}
+
+.addBlockForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.select {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  background-color: var(--surface-color);
+  color: var(--text-color);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='292.4' height='292.4'%3E%3Cpath fill='%23888888' d='M287 69.4a17.6 17.6 0 0 0-13-5.4H18.4c-5 0-9.3 1.8-12.9 5.4A17.6 17.6 0 0 0 0 82.2c0 5 1.8 9.3 5.4 12.9l128 127.9c3.6 3.6 7.8 5.4 12.8 5.4s9.2-1.8 12.8-5.4L287 95c3.5-3.5 5.4-7.8 5.4-12.8 0-5-1.9-9.2-5.5-12.8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem top 50%;
+  background-size: 0.65rem auto;
+  cursor: pointer;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.select:hover {
+  border-color: var(--accent-color);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(var(--accent-color-rgb), 0.2);
+}
+
+/* Add this to your :root or body styles if not already present */
+:root {
+  --accent-color-rgb: 105, 104, 104; /* This should match your accent color */
+}
+
+.modalContent {
+  width: 300px;
+  padding: 1.5rem;
+  background-color: var(--surface-color);
+  border-radius: var(--border-radius-medium);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal h2 {
+  margin-bottom: 1.5rem;
+  color: var(--text-color);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.addBlockForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.modalButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.modalButtons button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: var(--border-radius-small);
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.modalButtons button:active {
+  transform: translateY(1px);
+}
+
+.primaryButton {
+  background-color: var(--primary-button-color);
+  color: white;
+  border: none;
+}
+
+.primaryButton:hover {
+  background-color: var(--primary-button-hover);
+}
+
+.secondaryButton {
+  background-color: var(--secondary-button-color);
+  color: var(--text-color);
+  border: none;
+}
+
+.secondaryButton:hover {
+  background-color: var(--secondary-button-hover);
 }
