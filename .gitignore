@@ -17,6 +17,7 @@ build
 
 # Python virtual environment
 myenv/
+plugins/
 
 # Python requirements file
 requirements.txt

@@ -22,11 +22,17 @@ const PluginManagement = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
+      console.log('Fetched plugins:', data);
       setPlugins(data);
+      if (data.length === 0) {
+        console.warn('No plugins fetched from the server');
+      }
       data.forEach(plugin => {
+        console.log(`Registering plugin from API: ${plugin.name} (${plugin.type}) with URL: ${plugin.url}`);
         registerPlugin(plugin.type, plugin.name, plugin.url);
       });
     } catch (e) {
+      console.error(`Failed to load plugins: ${e.message}`);
       setError(`Failed to load plugins: ${e.message}`);
     }
   };
@@ -120,6 +126,7 @@ const PluginManagement = () => {
         <input
           type="file"
           onChange={(e) => setNewPluginFile(e.target.files[0])}
+          accept=".html"
           className={styles.pluginInput}
         />
         <button type="submit" className={`${styles.button} ${styles.primaryButton}`}>

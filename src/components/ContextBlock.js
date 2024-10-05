@@ -1,7 +1,7 @@
-import React, { Suspense } from 'react';
+import React, { useState } from 'react';
 import styles from '../App.module.css';
 import { getPlugin } from '../plugins/registry';
-import { FaTrash, FaArrowUp, FaArrowDown } from 'react-icons/fa';
+import { FaTrash, FaArrowUp, FaArrowDown, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 
 const ContextBlock = ({ 
   block, 
@@ -15,6 +15,9 @@ const ContextBlock = ({
   isLast,
   onMentionInChat 
 }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(block.title);
+
   const handleUpdate = (newContent) => {
     onUpdate(block.id, { ...block, content: newContent });
   };
@@ -37,13 +40,49 @@ const ContextBlock = ({
     onMentionInChat(block.id, block.title);
   };
 
+  const handleEditTitle = () => {
+    setIsEditing(true);
+  };
+
+  const handleSaveTitle = () => {
+    onUpdate(block.id, { ...block, title: editedTitle });
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditedTitle(block.title);
+    setIsEditing(false);
+  };
+
   const plugin = getPlugin(block.plugin_type);
-  const PluginComponent = plugin ? plugin.component : () => <div>Unsupported plugin type: {block.plugin_type}</div>;
+  const PluginComponent = plugin.component;
 
   return (
     <div className={styles.contextBlock}>
       <div className={styles.contextBlockHeader}>
-        <h3>{block.title}</h3>
+        {isEditing ? (
+          <>
+            <input
+              type="text"
+              value={editedTitle}
+              onChange={(e) => setEditedTitle(e.target.value)}
+              className={styles.editTitleInput}
+            />
+            <button onClick={handleSaveTitle} className={styles.editTitleButton} title="Save Title">
+              <FaSave />
+            </button>
+            <button onClick={handleCancelEdit} className={styles.editTitleButton} title="Cancel Edit">
+              <FaTimes />
+            </button>
+          </>
+        ) : (
+          <>
+            <h3>{block.title}</h3>
+            <button onClick={handleEditTitle} className={styles.editTitleButton} title="Edit Title">
+              <FaEdit />
+            </button>
+          </>
+        )}
         <div className={styles.contextBlockActions}>
           <button onClick={handleMentionInChat} className={styles.actionButton} title="Mention in Chat">
             @
@@ -69,9 +108,7 @@ const ContextBlock = ({
           </button>
         </div>
       </div>
-      <Suspense fallback={<div>Loading plugin...</div>}>
-        <PluginComponent content={block.content} onUpdate={handleUpdate} />
-      </Suspense>
+      <PluginComponent content={block.content} onUpdate={handleUpdate} />
     </div>
   );
 };

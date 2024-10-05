@@ -7,6 +7,7 @@ import MainArea from './components/MainArea';
 import AddBlockModal from './components/AddBlockModal';
 import AddProjectModal from './components/AddProjectModal';
 import { API_URL } from './config';
+import { registerPlugin } from './plugins/registry';
 
 function AppContent() {
   const [projects, setProjects] = useState([]);
@@ -102,6 +103,22 @@ function AppContent() {
       fetchChatHistory();
     }
   }, [selectedProject, fetchContextBlocks, fetchChatHistory]);
+
+  useEffect(() => {
+    const fetchAndRegisterPlugins = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/api/plugins`);
+        response.data.forEach(plugin => {
+          console.log(`Registering plugin: ${plugin.name} (${plugin.type}) with URL: ${plugin.url}`);
+          registerPlugin(plugin.type, plugin.name, plugin.url);
+        });
+      } catch (error) {
+        console.error("Error fetching and registering plugins:", error);
+      }
+    };
+
+    fetchAndRegisterPlugins();
+  }, []);
 
   const handleSend = async () => {
     if (message.trim() === '') return;

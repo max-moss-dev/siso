@@ -197,15 +197,25 @@ app.add_middleware(
 # Make sure to call this when your app starts
 @app.on_event("startup")
 async def startup_event():
+    print("Starting up the application...")  # Add this line
     load_plugins()
     db = SessionLocal()
     initialize_plugins(db)
     db.close()
+    print("Application startup complete.")  # Add this line
 
 def initialize_plugins(db: Session):
     db_plugins = db.query(PluginModel).all()
-    # We're not adding any default plugins here anymore
-    
+    if not db_plugins:
+        print("No plugins found in database. Adding default plugins.")  # Add this line
+        default_plugins = [
+            PluginModel(name="Text", type="text", code="class Plugin:\n    def process(self, content):\n        return content\n\n    def render(self, content):\n        return f'<div>{content}</div>'"),
+        ]
+        db.add_all(default_plugins)
+        db.commit()
+    else:
+        print(f"Found {len(db_plugins)} plugins in database.")  # Add this line
+
     # Load plugins from the database and register them
     for plugin in db_plugins:
         plugin_registry.register(plugin.type, lambda: type('Plugin', (), {
@@ -614,7 +624,8 @@ async def add_plugin(plugin: PluginCreate, db: Session = Depends(get_db)):
 @app.get("/plugins")
 async def get_plugins(db: Session = Depends(get_db)):
     plugins = db.query(PluginModel).all()
-    plugin_data = [{"id": p.id, "name": p.name, "type": p.type} for p in plugins]
+    plugin_data = [{"id": p.id, "name": p.name, "type": p.type, "url": f"/plugins/{p.type}.js"} for p in plugins]
+    print(f"Returning plugins: {plugin_data}")  # Add this line
     return JSONResponse(content=plugin_data)
 
 @app.delete("/plugins/{plugin_id}")
@@ -666,8 +677,16 @@ plugins = []
 # You may want to add a function to initialize plugins
 def initialize_plugins(db: Session):
     db_plugins = db.query(PluginModel).all()
-    # We're not adding any default plugins here anymore
-    
+    if not db_plugins:
+        print("No plugins found in database. Adding default plugins.")  # Add this line
+        default_plugins = [
+            PluginModel(name="Text", type="text", code="class Plugin:\n    def process(self, content):\n        return content\n\n    def render(self, content):\n        return f'<div>{content}</div>'"),
+        ]
+        db.add_all(default_plugins)
+        db.commit()
+    else:
+        print(f"Found {len(db_plugins)} plugins in database.")  # Add this line
+
     # Load plugins from the database and register them
     for plugin in db_plugins:
         plugin_registry.register(plugin.type, lambda: type('Plugin', (), {
@@ -687,19 +706,21 @@ async def add_plugin(
     file: UploadFile = File(...)
 ):
     try:
+        content = await file.read()
+        html_content = content.decode('utf-8')
+        
         # Ensure the plugins directory exists
         os.makedirs(PLUGIN_DIR, exist_ok=True)
         
-        file_path = os.path.join(PLUGIN_DIR, f"{type}.js")
+        file_path = os.path.join(PLUGIN_DIR, f"{type}.html")
         
         # Write the uploaded file content
-        with open(file_path, "wb") as buffer:
-            content = await file.read()
-            buffer.write(content)
+        with open(file_path, "w") as buffer:
+            buffer.write(html_content)
         
         # Add the plugin to the database
         db = SessionLocal()
-        new_plugin = PluginModel(name=name, type=type, code=file_path)
+        new_plugin = PluginModel(name=name, type=type, code=html_content)
         db.add(new_plugin)
         db.commit()
         db.refresh(new_plugin)
@@ -711,33 +732,21 @@ async def add_plugin(
                 "id": new_plugin.id,
                 "name": new_plugin.name,
                 "type": new_plugin.type,
-                "url": f"/plugins/{new_plugin.type}.js"
+                "url": f"/plugins/{new_plugin.type}.html"
             }
         }
-    except IntegrityError:
-        raise HTTPException(status_code=400, detail="Plugin type already exists")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
-# Update the get_plugins function to return the plugin code
-@app.get("/api/plugins")
-async def get_plugins(db: Session = Depends(get_db)):
-    plugins = db.query(PluginModel).all()
-    return [{"id": p.id, "name": p.name, "type": p.type, "code": p.code} for p in plugins]
-
-@app.delete("/api/plugins/{plugin_id}")
-async def delete_plugin(plugin_id: str, db: Session = Depends(get_db)):
-    plugin = db.query(PluginModel).filter(PluginModel.id == plugin_id).first()
-    if not plugin:
+# Add a new endpoint to serve plugin HTML content
+@app.get("/plugins/{plugin_type}.html", response_class=HTMLResponse)
+async def get_plugin_html(plugin_type: str):
+    file_path = os.path.join(PLUGIN_DIR, f"{plugin_type}.html")
+    if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Plugin not found")
-    
-    db.delete(plugin)
-    db.commit()
-    
-    # Remove the plugin from the registry
-    plugin_registry.plugins.pop(plugin.type, None)
-    
-    return {"message": "Plugin deleted successfully"}
+    with open(file_path, "r") as file:
+        content = file.read()
+    return HTMLResponse(content=content)
 
 # Create a directory to store plugins if it doesn't exist
 PLUGIN_DIR = "plugins"
@@ -746,31 +755,20 @@ os.makedirs(PLUGIN_DIR, exist_ok=True)
 # Mount the plugins directory
 app.mount("/plugins", StaticFiles(directory=PLUGIN_DIR), name="plugins")
 
-# Update the add_plugin endpoint
-@app.post("/api/plugins")
-async def add_plugin(name: str, type: str, file: UploadFile = File(...)):
-    file_path = os.path.join(PLUGIN_DIR, f"{type}.js")
-    
-    with open(file_path, "wb") as buffer:
-        content = await file.read()
-        buffer.write(content)
-    
-    db = SessionLocal()
-    new_plugin = PluginModel(name=name, type=type, code=file_path)
-    db.add(new_plugin)
-    db.commit()
-    db.refresh(new_plugin)
-    db.close()
-    
-    return {"message": "Plugin added successfully", "plugin": new_plugin}
-
-# Update the get_plugins endpoint
+# Add this new endpoint to fetch plugins
 @app.get("/api/plugins")
 async def get_plugins(db: Session = Depends(get_db)):
     plugins = db.query(PluginModel).all()
-    return [{"id": p.id, "name": p.name, "type": p.type, "url": f"/plugins/{p.type}.js"} for p in plugins]
+    return [
+        {
+            "id": plugin.id,
+            "name": plugin.name,
+            "type": plugin.type,
+            "url": f"/plugins/{plugin.type}.html"
+        }
+        for plugin in plugins
+    ]
 
-# Update the delete_plugin endpoint
 @app.delete("/api/plugins/{plugin_id}")
 async def delete_plugin(plugin_id: str, db: Session = Depends(get_db)):
     plugin = db.query(PluginModel).filter(PluginModel.id == plugin_id).first()
@@ -778,7 +776,7 @@ async def delete_plugin(plugin_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Plugin not found")
     
     # Remove the plugin file
-    file_path = os.path.join(PLUGIN_DIR, f"{plugin.type}.js")
+    file_path = os.path.join(PLUGIN_DIR, f"{plugin.type}.html")
     if os.path.exists(file_path):
         os.remove(file_path)
     

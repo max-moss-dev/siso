@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Plugin</title>
+</head>
+<body>
+    <textarea id="editor" style="width: 100%; height: 100%; box-sizing: border-box;"></textarea>
+    <script>
+        const editor = document.getElementById('editor');
+        
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'setContent') {
+                editor.value = event.data.content;
+            }
+        });
+
+        editor.addEventListener('input', () => {
+            window.parent.postMessage({ type: 'update', content: editor.value }, '*');
+        });
+
+        // Send a message to the parent to get the initial content
+        window.parent.postMessage({ type: 'getContent' }, '*');
+    </script>
+</body>
+</html>
