@@ -34,7 +34,7 @@
   --transition-speed: 0.3s;
   --sidebar-width: 250px;
   --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  --accent-color-rgb: 105, 104, 104; /* This should match your accent color */
+  --accent-color-rgb: 105, 104, 104;
 }
 
 body {
@@ -126,9 +126,9 @@ body {
 }
 
 .contextBlocksContainer {
-  padding: var(--padding-medium) 0;
   position: relative;
-  padding-bottom: 80px; /* Add space for the fixed button */
+  height: calc(100% - 50px);
+  overflow-y: auto;
 }
 
 .projectHeader {
@@ -229,17 +229,36 @@ body {
 .contextBlock {
   background-color: var(--surface-color);
   border-radius: var(--border-radius-medium);
-  padding: var(--padding-medium);
-  box-shadow: var(--box-shadow);
-  transition: all var(--transition-speed);
-  border: 1px solid var(--border-color);
-  margin-bottom: var(--padding-medium);
-  cursor: move; /* Indicates the block is draggable */
-  transition: background-color 0.3s ease;
+  margin-bottom: var(--padding-small);
+  transition: all 0.3s ease;
+  cursor: pointer;
 }
 
-.contextBlock:hover {
-  border-color: var(--accent-color);
+.contextBlock.expanded {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 12;
+  margin-bottom: 0;
+  overflow-y: auto;
+}
+
+.contextBlockHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--padding-small);
+}
+
+.contextBlockHeader h3 {
+  margin: 0; /* Remove default margins */
+  font-size: var(--font-size-normal);
+}
+
+.contextBlockContent {
+  padding: var(--padding-medium);
 }
 
 .contextBlock input {
@@ -747,17 +766,11 @@ body {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  z-index: 100;
-  padding: var(--padding-small) var(--padding-medium);
-  border-radius: var(--border-radius-small);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  z-index: 11;
 }
 
-.addBlockButton:hover {
-  background-color: var(--primary-button-hover);
+.contextBlock.expanded .addBlockButton {
+  display: none;
 }
 
 .chatHeader {
@@ -774,10 +787,6 @@ body {
 .chatHeaderButtons {
   display: flex;
   gap: var(--padding-small);
-}
-
-.chatHeaderButtons button {
-  padding: var(--padding-small) var(--padding-medium);
 }
 
 .mentionsInput {
@@ -1393,11 +1402,6 @@ button.toggleContextSidebarButton {
   box-shadow: 0 0 0 2px rgba(var(--accent-color-rgb), 0.2);
 }
 
-/* Add this to your :root or body styles if not already present */
-:root {
-  --accent-color-rgb: 105, 104, 104; /* This should match your accent color */
-}
-
 .modalContent {
   width: 300px;
   padding: 1.5rem;
@@ -1457,4 +1461,49 @@ button.toggleContextSidebarButton {
 
 .secondaryButton:hover {
   background-color: var(--secondary-button-hover);
+}
+
+.contextBlockHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--padding-medium);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.contextBlockContent {
+  padding: var(--padding-medium);
+}
+
+.contextBlockActions {
+  display: flex;
+  gap: var(--padding-small);
+}
+
+.actionButton {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 1em;
+  padding: 5px;
+  transition: color 0.3s ease;
+}
+
+.actionButton:hover {
+  color: var(--text-color);
+}
+
+.removeButton {
+  background: none;
+  border: none;
+  color: var(--danger-button-color);
+  cursor: pointer;
+  font-size: 1em;
+  padding: 5px;
+  transition: color 0.3s ease;
+}
+
+.removeButton:hover {
+  color: var(--danger-button-hover);
 }
