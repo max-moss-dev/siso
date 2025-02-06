@@ -1,4 +1,4 @@
-# SISO
+# SISO (Structured input, structured output)
 
 Structured input, structured output
 
